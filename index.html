@@ -1118,7 +1118,7 @@ $("cfRun").addEventListener("click", () => { if (lastPull) selectChar(lastPull.i
    Dodge asteroids, comets, meteors and space junk. Fly far enough and you reach the next world:
    Earth, the Moon, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto, then deep space. */
 const cv = $("game"); let ctx = setupCanvas(cv);
-let GW = 680, GH = 340, SCALE = 1, PX = 160, GROUND = 312;
+let GW = 680, GH = 340, SCALE = 1, PX = 160, GROUND = 312, OFX = 0, OFY = 0;
 const SS = 1.15;                               // ship drawing scale
 const isPhone = () => matchMedia("(pointer:coarse)").matches && Math.min(innerWidth, innerHeight) < 700;
 const isFS = () => document.body.classList.contains("fs");
@@ -1126,7 +1126,8 @@ function sizeGame(){
   const w = cv.clientWidth || cv.parentElement.clientWidth || 640, dpr = Math.min(window.devicePixelRatio || 1, 2);
   if (isFS()){
     const h = cv.parentElement.clientHeight || innerHeight;
-    GW = 380; GH = Math.max(480, Math.round(GW*h/w));
+    // on a phone the play field is a compact box in the middle of the screen, not the whole tall screen
+    GW = 400; GH = Math.min(430, Math.max(340, Math.round(GW*h/w)));
     cv.style.aspectRatio = "auto";
     const pw = Math.round(w*dpr), ph = Math.round(h*dpr);
     if (cv.width !== pw || cv.height !== ph){ cv.width = pw; cv.height = ph; ctx.imageSmoothingEnabled = false; }
@@ -1138,7 +1139,8 @@ function sizeGame(){
     const pw = Math.round(w*dpr), ph = Math.round(pw*GH/GW);
     if (cv.width !== pw || cv.height !== ph){ cv.width = pw; cv.height = ph; ctx.imageSmoothingEnabled = false; }
   }
-  SCALE = cv.width/GW; PX = Math.round(Math.min(170, GW*.24)); GROUND = GH - 26;
+  SCALE = Math.min(cv.width/GW, cv.height/GH); OFX = Math.round((cv.width - GW*SCALE)/2); OFY = isFS() ? Math.round((cv.height - GH*SCALE)*.42) : 0;
+  PX = Math.round(Math.min(170, GW*.24)); GROUND = GH - 26;
 }
 window.addEventListener("resize", sizeGame);
 function enterFS(){
@@ -1512,7 +1514,10 @@ function text(str, x, y, size, col, align, kind){
   ctx.fillStyle = col; ctx.fillText(str, x, y);
 }
 function draw(){
-  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (OFY || OFX){ const g0 = ctx.createLinearGradient(0, 0, 0, cv.height); g0.addColorStop(0, "#05060e"); g0.addColorStop(1, "#0a0c1c"); ctx.fillStyle = g0; ctx.fillRect(0, 0, cv.width, cv.height); }
+  ctx.setTransform(SCALE, 0, 0, SCALE, OFX, OFY);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, GW, GH); ctx.clip();
   drawBG();
   if (game.state === "monster") drawHole();
   game.coins.forEach(drawCoin);
@@ -1556,6 +1561,8 @@ function draw(){
     text(isPhone() ? "Tap to fly again" : "Click or press Space to fly again", GW/2, oy + 134, 13, "#c8cce8", "center");
   }
   if (game.paused){ ctx.fillStyle = "rgba(4,6,16,.5)"; ctx.fillRect(0, 0, GW, GH); text("PAUSED", GW/2, oy, 28, "#f4f0e8", "center"); text("Tap or press P to continue", GW/2, oy + 24, 12, "#b8bcd8", "center"); }
+  ctx.restore();
+  if (OFY){ ctx.strokeStyle = "rgba(127,215,255,.35)"; ctx.lineWidth = 1.5; ctx.strokeRect(0, 0, GW, GH); }
 }
 let last = performance.now();
 function frame(now){
