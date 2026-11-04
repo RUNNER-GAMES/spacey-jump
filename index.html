@@ -1232,6 +1232,15 @@ function spawnObstacle(){
     return;
   }
   if (roll < .62){
+    // every now and then, one huge asteroid with room to get around it above or below
+    if (Math.random() < .16){
+      const R = 38 + Math.random()*22 + Math.min(10, r*1.5), room = 135, lo = 4 + R, hi = GROUND - 4 - R;
+      let y = lo + Math.random()*(hi - lo);
+      if (y - R < room && GROUND - (y + R) < room) y = Math.random() < .5 ? lo : hi;
+      addRock(X + R, y, R, {vy:(Math.random() - .5)*8, spin:(Math.random() - .5)*.5, shape:rockShape(13)});
+      if (Math.random() < .7){ const cy = y - R > GROUND - (y + R) ? (y - R)/2 : (y + R + GROUND)/2; coinLine(X + R - 48, cy, 5, 0); }
+      game.nextObs = game.speed*(1.1 + Math.random()*.35) + R; return;
+    }
     // a few loose asteroids drifting through
     const n = 1 + (Math.random() < .15 + r*.07 ? 1 : 0) + (r >= 3 && Math.random() < .3 ? 1 : 0);
     for (let i = 0; i < n; i++) addRock(X + i*90 + Math.random()*30, top + Math.random()*(bot - top), 12 + Math.random()*14 + Math.min(10, r*1.2));
