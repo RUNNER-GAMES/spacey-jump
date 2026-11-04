@@ -307,7 +307,7 @@ window.FIREBASE_CONFIG = {
     <div class="brand"><h1 id="brandTitle">Spacey Jump</h1><span>Tap to fly · Earth to Pluto</span></div>
     <div class="purse">
       <div class="chip" title="Coins to spend"><span class="coin-ic"></span><span id="hudCoins">0</span><small>coins</small></div>
-      <div class="chip" title="Ships unlocked"><span id="hudOwned">1</span><small id="hudTotal">/ 48 ships</small></div>
+      <div class="chip" title="Ships unlocked"><span id="hudOwned">1</span><small id="hudTotal">/ 72 ships</small></div>
       <div class="chip" title="Best flight"><small>Best</small><span id="hudBest">0 km</span></div>
     </div>
   </header>
@@ -373,7 +373,7 @@ window.FIREBASE_CONFIG = {
     </section>
   </div>
 
-  <div class="grid2">
+  <div>
     <section class="panel" aria-labelledby="chestH">
       <h2 id="chestH">Cargo Pods</h2>
       <p class="sub">The Basic Chest (500 coins) has normal odds. The Epic Chest (1,000 coins) is much more likely to give a Rare, Epic, Legendary or Mythic ship. Mythic ships are a 3% chance in the Basic Chest. Duplicates pay back coins.</p>
@@ -387,7 +387,7 @@ window.FIREBASE_CONFIG = {
       </div>
     </section>
 
-    <section class="panel" aria-labelledby="oddsH">
+    <section class="panel" aria-labelledby="oddsH" style="display:none">
       <h2 id="oddsH">Rarity &amp; drop odds</h2>
       <p class="sub">Rarity changes how a ship looks. Every ship has its own exhaust stream, and rarer ships have fancier ones.</p>
       <div class="tablewrap">
@@ -407,7 +407,7 @@ window.FIREBASE_CONFIG = {
     <div class="cards" id="cards"></div>
   </section>
 
-  <section class="panel" aria-labelledby="saveH">
+  <section class="panel" aria-labelledby="saveH" style="display:none">
     <h2 id="saveH">Player &amp; saves</h2>
     <div class="save-grid">
       <div class="box">
@@ -516,6 +516,31 @@ const SHIP_LIST = [
   [5, "Star Destroyer X", "cruiser", "#1c1c22", "#ff3a3a", "gw", "comet", "#ff6a6a", "#ffd34d"],
   [5, "Cosmic Comet",     "needle",  "#f4f8ff", "#2de2e6", "gn", "comet", "#bfefff", "#2de2e6"],
   [5, "THE CREATOR",      "rocket",  "#2f5bd1", "#ffd34d", "xkgw","gold", "#ffd34d", "#fff3b0"],
+  // new ships always go at the end so saved hangars keep working
+  [0, "Junk Rocket",      "rocket",  "#8a8e9a", "#c8601a", "",   "smoke", "#a8a49a", "#6a6660"],
+  [0, "Mail Rocket",      "rocket",  "#f4f4f8", "#2f5bd1", "s",  "smoke", "#d8dce8", "#9aa0b0"],
+  [0, "Lemon Pod",        "pod",     "#f0e050", "#5a5a22", "",   "puff",  "#fff5a0", "#f0e050"],
+  [0, "Rust Bucket",      "cruiser", "#a8582a", "#5a3a22", "",   "smoke", "#a89a88", "#6a5e52"],
+  [0, "Sky Blue Saucer",  "saucer",  "#7ac0f0", "#f4f4f8", "",   "puff",  "#c8e8ff", "#7ac0f0"],
+  [0, "Gray Ghost",       "fighter", "#6a6e78", "#c8ccd8", "",   "smoke", "#c8ccd8", "#8a8e9a"],
+  [1, "Space Ambulance",  "shuttle", "#f4f4f8", "#e0263a", "s",  "flame", "#ffd34d", "#ff6a1a"],
+  [1, "Firecracker",      "needle",  "#e0263a", "#ffd34d", "n",  "spark", "#ffd34d", "#ff8a2a"],
+  [1, "Moon Rover",       "pod",     "#d8d0b8", "#c8601a", "w",  "puff",  "#f0e8d8", "#c8b898"],
+  [1, "Teal Comet",       "fighter", "#2ab8b8", "#f4f4f8", "w",  "plasma","#c8ffff", "#2ab8b8"],
+  [1, "Pumpkin Rocket",   "retro",   "#ff8a2a", "#3a6a2a", "w",  "flame", "#ffd34d", "#ff6a1a"],
+  [1, "Cotton Candy",     "saucer",  "#ff8ad8", "#8ad8ff", "",   "bubble","#ffc8f0", "#8ad8ff"],
+  [2, "Mars Rover X",     "capsule", "#c85a2a", "#ffd34d", "w",  "flame", "#ffd34d", "#ff4a1a"],
+  [2, "Bubblegum Blaster","rocket",  "#ff8ac2", "#2de2e6", "c",  "heart", "#ff4fa3", "#ffc8e8"],
+  [2, "Lava Lancer",      "needle",  "#1c1c22", "#ff6a1a", "f",  "flame", "#ffd34d", "#ff3a1a"],
+  [2, "Glacier Cruiser",  "cruiser", "#dff0ff", "#4a9ad8", "s",  "spark", "#ffffff", "#9ae4ff"],
+  [2, "Disco Saucer",     "saucer",  "#b77bff", "#ffd34d", "",   "pixel", "#ff4fa3", "#ffd34d"],
+  [3, "Thunderbird",      "fighter", "#ffd34d", "#1c1c22", "sw", "bolt",  "#ffe36e", "#ffffff"],
+  [3, "Midnight Comet",   "needle",  "#14101e", "#b77bff", "n",  "neon",  "#b77bff", "#2de2e6"],
+  [3, "Sunrise Shuttle",  "shuttle", "#ff8a5a", "#ff4fa3", "s",  "rainbow","#ff4fa3","#ffd34d"],
+  [3, "Crystal Pod",      "pod",     "#bff4ff", "#b77bff", "w",  "star",  "#ffffff", "#b77bff"],
+  [4, "Black Widow",      "fighter", "#1c1c22", "#e0263a", "fw", "twin",  "#ffd34d", "#e0263a"],
+  [4, "Star Whale",       "cruiser", "#2a4a8a", "#7fd7ff", "w",  "bubble","#bff4ff", "#7fd7ff"],
+  [5, "Alien Mothership", "saucer",  "#3ad83a", "#b77bff", "k",  "comet", "#c8ff9a", "#7dff5a"],
 ];
 const CHARS = SHIP_LIST.map(([tier, name, body, main, accent, ex, trail, t1, t2], id) => ({id, tier, name, body, main, accent, ex, trail, t1, t2}));
 const SORTED = [...CHARS].sort((a, b) => a.tier - b.tier || a.id - b.id);
@@ -1183,6 +1208,13 @@ function addRock(x, y, r, o){ game.obs.push(Object.assign({k:"rock", x, y, r, vx
 function spawnObstacle(){
   const r = game.round, X = GW + 40, top = 40, bot = GROUND - 30, roll = Math.random();
   const gap = Math.max(130, 195 - r*7);
+  if (game.dist - (game.lastOdd || 0) > 110 && Math.random() < .3){
+    game.lastOdd = game.dist; const y = top + 20 + Math.random()*(bot - top - 40), pick = Math.random();
+    if (pick < .38) game.obs.push({k:"alien", x:X, y, y0:y, r:13, vx:-10, vy:0, ph:Math.random()*6, rot:0});
+    else if (pick < .68) game.obs.push({k:"spaceman", x:X, y, r:13, vx:-15, vy:(Math.random() - .5)*16, rot:Math.random()*6, spin:(Math.random() < .5 ? -1 : 1)*(.5 + Math.random()*.6)});
+    else game.obs.push({k:"monkey", x:X + 20, y, y0:y, r:14, vx:-110, vy:0, ph:Math.random()*6, rot:0});
+    game.nextObs = game.speed*(.9 + Math.random()*.4); return;
+  }
   if (roll < .3 + Math.min(.15, r*.02) && game.dist - game.lastWall > 40){
     // a wall of asteroids with one way through
     const gy = top + gap/2 + Math.random()*(bot - top - gap);
@@ -1303,6 +1335,8 @@ function update(dt){
     if (o.k === "comet" && o.warn > 0){ o.warn -= dt; if (o.warn <= 0) Sound.comet(); continue; }
     o.x += (o.vx - game.speed)*dt*(o.k === "comet" ? 0 : 1) + (o.k === "comet" ? o.vx*dt : 0); o.y += o.vy*dt;
     if (o.rot !== undefined) o.rot += (o.spin || 0)*dt;
+    if (o.k === "alien" || o.k === "monkey"){ o.ph += dt*(o.k === "monkey" ? 5 : 2.2); o.y = o.y0 + Math.sin(o.ph)*(o.k === "monkey" ? 8 : 14); }
+    if (o.k === "monkey" && Math.random() < dt*30) game.trail.push({x:o.x + 18, y:o.y + 2, vx:60, vy:(Math.random() - .5)*10, life:.35, max:.35, r:2.6, col: Math.random() < .5 ? "#ffd34d" : "#ff8a2a", k:"m"});
     if (o.k === "rock" && (o.y < 8 || o.y > GROUND - 8)) o.vy = -o.vy;
     if (o.k === "meteor" && Math.random() < dt*40) game.parts.push({x:o.x + 6, y:o.y - 6, vx:40, vy:-30, life:.35, col: Math.random() < .5 ? "#ffd34d" : "#ff6a1a"});
     if (o.k === "comet" && Math.random() < dt*50) game.trail.push({x:o.x + 8, y:o.y + (Math.random() - .5)*6, vx:30, vy:(Math.random() - .5)*10, life:.6, max:.6, r:4, col: Math.random() < .5 ? "#bfefff" : "#ffffff", k:"comet"});
@@ -1376,9 +1410,20 @@ function drawPlanet(p, idx){
     else if (idx === 8){ ctx.fillStyle = rgba(p.land, .25); ctx.beginPath(); ctx.ellipse(x + 80 + h % 80, GROUND + 8, 70, 5, 0, 0, Math.PI*2); ctx.fill(); } }
   if (idx >= 3 && idx <= 6){ for (let i = 0; i < 4; i++){ ctx.fillStyle = i % 2 ? rgba(p.land, .35) : "rgba(255,255,255,.12)"; ctx.fillRect(0, GROUND + 4 + i*6, GW, 3); } }
   ctx.restore();
+  if (idx === 1){ const span2 = 900, off2 = (game.scroll*.9) % span2;
+    for (let x = -off2; x < GW + span2; x += span2){ const fx = x + 420; if (fx < -40 || fx > GW + 40) continue; const sy = cy - Math.sqrt(R*R - (fx - cx)*(fx - cx)) + 3; drawFlag(fx, sy); } }
   // a soft glow of atmosphere along the edge
   ctx.strokeStyle = rgba(p.glow, .5); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, R + 1, Math.PI*1.25, Math.PI*1.75); ctx.stroke();
   ctx.strokeStyle = rgba(p.glow, .15); ctx.lineWidth = 9; ctx.beginPath(); ctx.arc(cx, cy, R + 5, Math.PI*1.25, Math.PI*1.75); ctx.stroke();
+}
+function drawFlag(x, y){
+  ctx.fillStyle = "#c8ccd8"; ctx.fillRect(x - 1, y - 34, 2, 34);                                                       // pole
+  ctx.fillStyle = "#c8ccd8"; ctx.fillRect(x - 1, y - 34, 24, 1.5);                                                      // the top bar that holds it out
+  const fw = 22, fh = 13, fy = y - 33;
+  for (let i = 0; i < 7; i++){ ctx.fillStyle = i % 2 ? "#f4f4f8" : "#c8202a"; ctx.fillRect(x + 1, fy + i*fh/7, fw, fh/7 + .3); }
+  ctx.fillStyle = "#2a3a8a"; ctx.fillRect(x + 1, fy, 9, 7);
+  ctx.fillStyle = "#f4f4f8"; for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) ctx.fillRect(x + 2.6 + i*2.8, fy + 1.6 + j*2.8, 1, 1);
+  ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x + 4, y + 1, 9, 2, 0, 0, Math.PI*2); ctx.fill();
 }
 function drawBG(){
   const idx = Math.min(game.round - 1, PLANETS.length - 1);
@@ -1419,6 +1464,46 @@ function drawJunk(o){
   ctx.fillStyle = "#c8ccd8"; ctx.fillRect(-1, -14, 2, 6); circ(0, -14, 2.5, "#e8ecf4");
   ctx.restore();
 }
+// a little green alien floating along, waving its arms
+function drawAlien(o){
+  ctx.save(); ctx.translate(o.x, o.y); const w = Math.sin(o.ph*2)*.5;
+  const G = "#6ad84a", D = "#3a9a2a";
+  ctx.strokeStyle = G; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-4, -12); ctx.lineTo(-7, -19); ctx.moveTo(4, -12); ctx.lineTo(7, -19); ctx.stroke();
+  circ(-7, -19, 2, "#ffd34d"); circ(7, -19, 2, "#ffd34d");
+  ctx.fillStyle = G; ctx.beginPath(); ctx.ellipse(0, -5, 10, 9, 0, 0, Math.PI*2); ctx.fill();                        // head
+  ctx.fillStyle = "#1c1c22"; ctx.beginPath(); ctx.ellipse(-4, -5, 3, 4.2, -.3, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(4, -5, 3, 4.2, .3, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(-5, -8, 1.5, 1.5); ctx.fillRect(3, -8, 1.5, 1.5);
+  ctx.fillStyle = D; ctx.fillRect(-2, 1, 4, 1);
+  ctx.fillStyle = G; ctx.beginPath(); ctx.ellipse(0, 9, 6, 6, 0, 0, Math.PI*2); ctx.fill();                          // body
+  ctx.strokeStyle = G; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(-5, 7); ctx.lineTo(-11, 2 + w*8); ctx.moveTo(5, 7); ctx.lineTo(11, 2 - w*8); ctx.moveTo(-3, 14); ctx.lineTo(-4, 19); ctx.moveTo(3, 14); ctx.lineTo(4, 19); ctx.stroke();
+  ctx.restore();
+}
+// an astronaut drifting and slowly tumbling
+function drawSpaceman(o){
+  ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.rot);
+  const W = "#e8ecf4", S = "#b8bcc8";
+  ctx.fillStyle = S; ctx.fillRect(-9, -6, 5, 14);                                                                     // backpack
+  ctx.fillStyle = W; ctx.beginPath(); ctx.roundRect(-5, -4, 11, 13, 3); ctx.fill();                                   // body
+  ctx.fillStyle = "#e0263a"; ctx.fillRect(-2, 0, 5, 2); ctx.fillStyle = "#2f5bd1"; ctx.fillRect(-2, 2, 5, 2);
+  ctx.strokeStyle = W; ctx.lineWidth = 3.4; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(5, -1); ctx.lineTo(11, -6); ctx.moveTo(-3, 0); ctx.lineTo(-8, 5);
+  ctx.moveTo(-2, 9); ctx.lineTo(-4, 16); ctx.moveTo(4, 9); ctx.lineTo(6, 16); ctx.stroke(); ctx.lineCap = "butt";
+  circ(1, -9, 6.5, W); circ(2, -9, 4.4, "#1c2a3e"); ctx.fillStyle = "rgba(255,210,120,.8)"; ctx.fillRect(2, -11, 2.2, 2);   // helmet and visor
+  ctx.restore();
+}
+// a monkey zooming by in a tiny rocket
+function drawMonkey(o){
+  ctx.save(); ctx.translate(o.x, o.y);
+  ctx.fillStyle = "#e0263a"; ctx.beginPath(); ctx.moveTo(12, -4); ctx.lineTo(20, -11); ctx.lineTo(18, -4); ctx.fill(); ctx.beginPath(); ctx.moveTo(12, 4); ctx.lineTo(20, 11); ctx.lineTo(18, 4); ctx.fill();
+  ctx.fillStyle = "#d8dce8"; ctx.beginPath(); ctx.moveTo(18, -6); ctx.lineTo(-6, -6); ctx.quadraticCurveTo(-20, 0, -6, 6); ctx.lineTo(18, 6); ctx.closePath(); ctx.fill();   // rocket body, nose pointing left
+  ctx.fillStyle = "#3a3e48"; ctx.fillRect(17, -3, 3, 6);
+  ctx.fillStyle = "rgba(160,220,255,.5)"; ctx.beginPath(); ctx.arc(2, -6, 8, Math.PI, 0); ctx.fill();                  // glass bubble
+  const M = "#8a5a2a", F = "#e8c090";
+  circ(2, -7, 5, M); circ(-3, -8, 2, M); circ(7, -8, 2, M); circ(-3, -8, 1, F); circ(7, -8, 1, F);                     // head and ears
+  ctx.fillStyle = F; ctx.beginPath(); ctx.ellipse(2, -6, 3.4, 2.6, 0, 0, Math.PI*2); ctx.fill();                        // face
+  ctx.fillStyle = "#1c1c22"; ctx.fillRect(0, -8, 1.3, 1.3); ctx.fillRect(3, -8, 1.3, 1.3); ctx.fillRect(1, -5, 2.4, .8);
+  ctx.strokeStyle = "rgba(220,240,255,.8)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(2, -6, 8, Math.PI, 0); ctx.stroke();
+  ctx.restore();
+}
 function drawCoin(k){ const w = Math.max(1, Math.abs(Math.cos(k.spin || 0))*7); ctx.fillStyle = "#8a5a10"; ctx.beginPath(); ctx.ellipse(k.x, k.y, w + 1, 8, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#ffc83a"; ctx.beginPath(); ctx.ellipse(k.x, k.y, w, 7, 0, 0, Math.PI*2); ctx.fill(); if (w > 3){ ctx.fillStyle = "#fff3b0"; starP(k.x, k.y, 3.2, 0); } }
 function textFont(size, kind){ return kind === "num" ? `${size}px "Press Start 2P", "Pixelify Sans", monospace` : `700 ${size}px "Pixelify Sans", "Courier New", monospace`; }
 function text(str, x, y, size, col, align, kind){
@@ -1431,7 +1516,7 @@ function draw(){
   drawBG();
   if (game.state === "monster") drawHole();
   game.coins.forEach(drawCoin);
-  for (const o of game.obs){ if (o.k === "rock") drawRock(o); else if (o.k === "meteor") drawMeteor(o); else if (o.k === "comet") drawComet(o); else drawJunk(o); }
+  for (const o of game.obs){ if (o.k === "rock") drawRock(o); else if (o.k === "meteor") drawMeteor(o); else if (o.k === "comet") drawComet(o); else if (o.k === "alien") drawAlien(o); else if (o.k === "spaceman") drawSpaceman(o); else if (o.k === "monkey") drawMonkey(o); else drawJunk(o); }
   drawTrail();
   const c = curCar();
   if (!(game.state === "over" && (game.crashed || game.monsterEnd))){
