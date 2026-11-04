@@ -1171,7 +1171,22 @@ const PLANETS = [
   {name:"Pluto",   sub:"The edge of the solar system",   sky:["#030306","#08080e","#141420"], surf:["#d8c0a0","#a88a68"], land:"#f0e0c8", glow:"#f4e8d8"},
   {name:"Deep Space", sub:"Nobody's been this far",      sky:["#030208","#0a0418","#1a0830"], surf:["#5a2a9a","#2a1050"], land:"#ff4fa3", glow:"#c89aff"},
 ];
-const planetFor = r => PLANETS[Math.min(r - 1, PLANETS.length - 1)];
+// past Pluto the trip never ends: you keep reaching far-off worlds, and the list repeats with a new number each lap
+const BEYOND = [
+  {name:"Lava World",    sub:"It's getting hot",          sky:["#0a0204","#2a0806","#5a1408"], surf:["#ff6a1a","#8a1a08"], land:"#2a0a04", glow:"#ffb070", style:2},
+  {name:"Ice World",     sub:"Frozen solid",              sky:["#02060e","#081a2e","#14385a"], surf:["#e8f8ff","#9ac8e8"], land:"#bfe0f4", glow:"#e8faff", style:1},
+  {name:"Candy Planet",  sub:"Sweet!",                    sky:["#0a0410","#2a0a2a","#5a1a4a"], surf:["#ff8ad8","#c84aa8"], land:"#ffd0f0", glow:"#ffc8f0", style:3},
+  {name:"Ocean World",   sub:"Water as far as you can see",sky:["#020818","#06203a","#0e3a6a"], surf:["#1a6ac8","#0a3a8a"], land:"#2a8ae8", glow:"#9ad8ff", style:0},
+  {name:"Crystal Planet",sub:"Shiny!",                    sky:["#06020e","#160a2e","#2a1458"], surf:["#b77bff","#5a2ab0"], land:"#e8d8ff", glow:"#e0c8ff", style:7},
+  {name:"Gold Planet",   sub:"Worth a fortune",           sky:["#0a0802","#241a06","#4a3410"], surf:["#ffd34d","#a87a10"], land:"#fff3b0", glow:"#fff0a8", style:4},
+  {name:"Alien Homeworld",sub:"Say hello!",               sky:["#020a04","#06200e","#0e4020"], surf:["#5ac85a","#1a6a2a"], land:"#b77bff", glow:"#a8ffa8", style:5},
+  {name:"Deep Space",    sub:"Keep going!",               sky:["#030208","#0a0418","#1a0830"], surf:["#5a2a9a","#2a1050"], land:"#ff4fa3", glow:"#c89aff", style:8},
+];
+function planetFor(r){
+  if (r <= PLANETS.length) return Object.assign({style: r - 1}, PLANETS[r - 1]);
+  const k = r - PLANETS.length - 1, lap = Math.floor(k/BEYOND.length), b = BEYOND[k % BEYOND.length];
+  return Object.assign({}, b, {name: b.name + (lap ? " " + (lap + 1) : "")});
+}
 const ROUND_LEN = r => 260 + r*90;             // how far (km) until the next world
 const HOLE_CHANCE = 1/100;                    // about 1 run in 100 meets a black hole
 const FLAP = -360, GRAV = 1050, MAXFALL = 500;
@@ -1209,7 +1224,7 @@ const rockShape = n => Array.from({length:n}, (_, i) => .72 + Math.random()*.32)
 function addRock(x, y, r, o){ game.obs.push(Object.assign({k:"rock", x, y, r, vx:0, vy:(Math.random() - .5)*14, rot:Math.random()*6, spin:(Math.random() - .5)*1.6, shape:rockShape(9), col: ["#8a7a6a","#7a6e64","#6a6a74","#8a6a5a"][Math.floor(Math.random()*4)]}, o || {})); }
 function spawnObstacle(){
   const r = game.round, X = GW + 40, top = 40, bot = GROUND - 30, roll = Math.random();
-  const gap = Math.max(130, 195 - r*7);
+  const gap = Math.max(118, 182 - r*7);
   if (game.dist - (game.lastOdd || 0) > 110 && Math.random() < .3){
     game.lastOdd = game.dist; const y = top + 20 + Math.random()*(bot - top - 40), pick = Math.random();
     if (pick < .38) game.obs.push({k:"alien", x:X, y, y0:y, r:13, vx:-10, vy:0, ph:Math.random()*6, rot:0});
@@ -1228,7 +1243,7 @@ function spawnObstacle(){
         if (placed.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 22)) continue;
         placed.push({x, y, r, z:z0}); addRock(x, y, r, {vy:(Math.random() - .5)*6, band:[z0, z1]}); } }
     coinLine(X + 30, gy, 5, 0); game.lastWall = game.dist;
-    game.nextObs = game.speed*(1.55 + Math.random()*.4);
+    game.nextObs = game.speed*(1.35 + Math.random()*.35);
     return;
   }
   if (roll < .62){
@@ -1242,7 +1257,7 @@ function spawnObstacle(){
       game.nextObs = game.speed*(1.1 + Math.random()*.35) + R; return;
     }
     // a few loose asteroids drifting through
-    const n = 1 + (Math.random() < .15 + r*.07 ? 1 : 0) + (r >= 3 && Math.random() < .3 ? 1 : 0);
+    const n = 1 + (Math.random() < .25 + r*.07 ? 1 : 0) + (r >= 3 && Math.random() < .35 ? 1 : 0);
     for (let i = 0; i < n; i++) addRock(X + i*90 + Math.random()*30, top + Math.random()*(bot - top), 12 + Math.random()*14 + Math.min(10, r*1.2));
     if (Math.random() < .85) coinWave(X + 40);
   } else if (roll < .78){
@@ -1258,7 +1273,7 @@ function spawnObstacle(){
     // old space junk, tumbling (from Mars on)
     game.obs.push({k:"junk", x:X, y:top + Math.random()*(bot - top), r:14, vx:-20, vy:(Math.random() - .5)*30, rot:Math.random()*6, spin:(Math.random() - .5)*2});
   }
-  game.nextObs = game.speed*(Math.max(.7, 1.15 - r*.05) + Math.random()*.45);
+  game.nextObs = game.speed*(Math.max(.55, .95 - r*.05) + Math.random()*.38);
 }
 function coinLine(x0, y, n, dy){ for (let i = 0; i < n; i++) game.coins.push({x:x0 + i*24, y: y + (dy || 0)*i, spin:i*.6}); }
 function coinWave(x0){ const y = 60 + Math.random()*(GROUND - 140); for (let i = 0; i < 5; i++) game.coins.push({x:x0 + i*24, y: y + Math.sin(i*.8)*22, spin:i*.6}); }
@@ -1333,12 +1348,12 @@ function update(dt){
   if (!moving) return;
   if (game.dist >= game.monsterAt){ startHole(); return; }
   // speed and distance
-  game.speed = Math.min(340, 175 + (game.round - 1)*15 + Math.min(35, game.roundDist*.07));
+  game.speed = Math.min(400, 188 + (game.round - 1)*16 + Math.min(35, game.roundDist*.07));
   const dx = game.speed*dt; game.dist += dx/10; game.roundDist += dx/10;
   if (game.roundDist >= ROUND_LEN(game.round)){
     const bonus = 3*game.round; addCoins(bonus); game.round++; game.roundDist = 0; game.fadeT = 0;
     const p = planetFor(game.round);
-    game.banner = {text: (game.round <= PLANETS.length ? "Now arriving: " : "") + p.name, sub: p.sub + " · +" + bonus + " coins", t:2.6}; Sound.planet(); Saves.save();
+    game.banner = {text: "Now arriving: " + p.name, sub: p.sub + " · +" + bonus + " coins", t:2.6}; Sound.planet(); Saves.save();
   }
   // flying
   game.vy = Math.min(MAXFALL, game.vy + GRAV*dt); game.py += game.vy*dt;
@@ -1412,7 +1427,7 @@ function drawPlanet(p, idx){
   // something in the sky for each stop
   const far = (x0, speed) => ((x0 - game.scroll*speed) % (GW + 300) + GW + 300) % (GW + 300) - 150;
   const skyY = f => VT < 0 ? VT*.55 + 40 + f*120 : GH*f;
-  if (idx === 1){ const x = far(GW*.75, .02), y = skyY(.22); circ(x, y, 18, "#2a6ac8"); ctx.fillStyle = "#3a9a4a"; ctx.fillRect(x - 8, y - 6, 9, 6); ctx.fillRect(x + 2, y + 3, 7, 5); circ(x - 4, y - 8, 4, "rgba(255,255,255,.7)"); }
+  if (p.name === "The Moon"){ const x = far(GW*.75, .02), y = skyY(.22); circ(x, y, 18, "#2a6ac8"); ctx.fillStyle = "#3a9a4a"; ctx.fillRect(x - 8, y - 6, 9, 6); ctx.fillRect(x + 2, y + 3, 7, 5); circ(x - 4, y - 8, 4, "rgba(255,255,255,.7)"); }
   if (idx === 0 || idx === 2){ const x = far(GW*.85, .015), y = skyY(.18); circ(x, y, 14, "rgba(255,240,180,.25)"); circ(x, y, 8, "#fff3b0"); }
   if (idx === 4){ ctx.save(); ctx.translate(GW*.5, GROUND + GW*1.1); ctx.rotate(-.12); ctx.strokeStyle = "rgba(232,208,152,.35)"; for (let i = 0; i < 4; i++){ ctx.lineWidth = 6 - i; ctx.beginPath(); ctx.ellipse(0, 0, GW*1.5 + i*18, GW*1.25 + i*14, 0, Math.PI*1.15, Math.PI*1.85); ctx.stroke(); } ctx.restore(); }
   if (idx === 8){ for (let i = 0; i < 3; i++){ const x = far(GW*(.2 + i*.35), .03 + i*.01), y = skyY(.2 + i*.15), r = 70 + i*20; const ng = ctx.createRadialGradient(x, y, 0, x, y, r); ng.addColorStop(0, i % 2 ? "rgba(255,79,163,.18)" : "rgba(120,90,255,.18)"); ng.addColorStop(1, "rgba(0,0,0,0)"); ctx.fillStyle = ng; ctx.fillRect(x - r, y - r, r*2, r*2); } }
@@ -1433,7 +1448,7 @@ function drawPlanet(p, idx){
   // the gas giants are striped all the way down
   if (idx >= 3 && idx <= 6){ for (let i = 0, y = GROUND + 4; y < Math.max(GH, VB); i++){ const hgt = 3 + i*1.2; ctx.fillStyle = i % 2 ? rgba(p.land, .35) : "rgba(255,255,255,.12)"; ctx.fillRect(0, y, GW, hgt); y += hgt*2; } }
   ctx.restore();
-  if (idx === 1){ const span2 = 900, off2 = (game.scroll*.9) % span2;
+  if (p.name === "The Moon"){ const span2 = 900, off2 = (game.scroll*.9) % span2;
     for (let x = -off2; x < GW + span2; x += span2){ const fx = x + 420; if (fx < -40 || fx > GW + 40) continue; const sy = cy - Math.sqrt(R*R - (fx - cx)*(fx - cx)) + 3; drawFlag(fx, sy); } }
   // a soft glow of atmosphere along the edge
   ctx.strokeStyle = rgba(p.glow, .5); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, R + 1, Math.PI*1.25, Math.PI*1.75); ctx.stroke();
@@ -1449,9 +1464,9 @@ function drawFlag(x, y){
   ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x + 4, y + 1, 9, 2, 0, 0, Math.PI*2); ctx.fill();
 }
 function drawBG(){
-  const idx = Math.min(game.round - 1, PLANETS.length - 1);
-  if (game.fadeT < 2 && idx > 0){ drawPlanet(PLANETS[idx - 1], idx - 1); ctx.globalAlpha = game.fadeT/2; drawPlanet(PLANETS[idx], idx); ctx.globalAlpha = 1; }
-  else drawPlanet(PLANETS[idx], idx);
+  const now = planetFor(game.round);
+  if (game.fadeT < 2 && game.round > 1){ const prev = planetFor(game.round - 1); drawPlanet(prev, prev.style); ctx.globalAlpha = game.fadeT/2; drawPlanet(now, now.style); ctx.globalAlpha = 1; }
+  else drawPlanet(now, now.style);
 }
 function drawRock(o){
   ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.rot);
@@ -1557,7 +1572,7 @@ function draw(){
     ctx.fillStyle = "rgba(4,4,12,.5)"; ctx.fillRect(0, VT, GW, 48);
     text(p.name.toUpperCase(), L, top, 10, "#ffd27a", "left", "num");
     ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(L, top + 7, 110, 5); ctx.fillStyle = "#7fd7ff"; ctx.fillRect(L, top + 7, 110*Math.min(1, game.roundDist/ROUND_LEN(game.round)), 5);
-    if (game.round < PLANETS.length) text("NEXT: " + planetFor(game.round + 1).name.toUpperCase(), L, top + 22, 6, "#a8b0c8", "left", "num");
+    text("NEXT: " + planetFor(game.round + 1).name.toUpperCase(), L, top + 22, 6, "#a8b0c8", "left", "num");
     if (GW >= 440) text("BEST " + fmt(Math.max(state.best, Math.floor(game.dist))) + " KM", GW/2, top, 8, "#e0e4f5", "center", "num");
     text(fmt(Math.floor(game.dist)) + " km", GW - 10, top, 12, "#ffffff", "right", "num");
     const ct = fmt(state.coins); ctx.font = textFont(10, "num"); const cw = ctx.measureText(ct).width;
