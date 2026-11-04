@@ -1254,6 +1254,8 @@ function flap(){
 /* ---------- things in space ---------- */
 const rockShape = n => Array.from({length:n}, (_, i) => .72 + Math.random()*.32);
 function addRock(x, y, r, o){ game.obs.push(Object.assign({k:"rock", x, y, r, vx:0, vy:(Math.random() - .5)*14, rot:Math.random()*6, spin:(Math.random() - .5)*1.6, shape:rockShape(9), col: ["#8a7a6a","#7a6e64","#6a6a74","#8a6a5a"][Math.floor(Math.random()*4)]}, o || {})); }
+// obstacles come closer together the farther you fly (down to about half the starting gap)
+const dens = () => Math.max(.5, 1 - game.dist*.00012);
 function spawnObstacle(){
   const r = game.round, X = GW + 40, top = 40, bot = GROUND - 30, roll = Math.random();
   const gap = Math.max(118, 182 - r*7);
@@ -1262,7 +1264,7 @@ function spawnObstacle(){
     if (pick < .38) game.obs.push({k:"alien", x:X, y, y0:y, r:13, vx:-10, vy:0, ph:Math.random()*6, rot:0});
     else if (pick < .68) game.obs.push({k:"spaceman", x:X, y, r:13, vx:-15, vy:(Math.random() - .5)*16, rot:Math.random()*6, spin:(Math.random() < .5 ? -1 : 1)*(.5 + Math.random()*.6)});
     else game.obs.push({k:"monkey", x:X + 20, y, y0:y, r:14, vx:-110, vy:0, ph:Math.random()*6, rot:0});
-    game.nextObs = game.speed*(.9 + Math.random()*.4); return;
+    game.nextObs = game.speed*(.9 + Math.random()*.4)*dens(); return;
   }
   if (roll < .3 + Math.min(.15, r*.02) && game.dist - game.lastWall > 40){
     // a loose asteroid field: rocks of all sizes scattered above and below one clear path through
@@ -1275,7 +1277,7 @@ function spawnObstacle(){
         if (placed.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 22)) continue;
         placed.push({x, y, r, z:z0}); addRock(x, y, r, {vy:(Math.random() - .5)*6, band:[z0, z1]}); } }
     coinLine(X + 30, gy, 5, 0); game.lastWall = game.dist;
-    game.nextObs = game.speed*(1.35 + Math.random()*.35);
+    game.nextObs = game.speed*(1.35 + Math.random()*.35)*Math.max(.75, dens());
     return;
   }
   if (roll < .62){
@@ -1286,10 +1288,10 @@ function spawnObstacle(){
       if (y - R < room && GROUND - (y + R) < room) y = Math.random() < .5 ? lo : hi;
       addRock(X + R, y, R, {vy:(Math.random() - .5)*8, spin:(Math.random() - .5)*.5, shape:rockShape(13)});
       if (Math.random() < .7){ const cy = y - R > GROUND - (y + R) ? (y - R)/2 : (y + R + GROUND)/2; coinLine(X + R - 48, cy, 5, 0); }
-      game.nextObs = game.speed*(1.1 + Math.random()*.35) + R; return;
+      game.nextObs = game.speed*(1.1 + Math.random()*.35)*Math.max(.7, dens()) + R; return;
     }
     // a few loose asteroids drifting through
-    const n = 1 + (Math.random() < .25 + r*.07 ? 1 : 0) + (r >= 3 && Math.random() < .35 ? 1 : 0);
+    const n = 1 + (Math.random() < .25 + r*.07 ? 1 : 0) + (r >= 3 && Math.random() < .35 + Math.min(.4, game.dist/8000) ? 1 : 0) + (game.dist > 2500 && Math.random() < Math.min(.5, game.dist/10000) ? 1 : 0);
     for (let i = 0; i < n; i++) addRock(X + i*90 + Math.random()*30, top + Math.random()*(bot - top), 12 + Math.random()*14 + Math.min(10, r*1.2));
     if (Math.random() < .85) coinWave(X + 40);
   } else if (roll < .78){
@@ -1305,7 +1307,7 @@ function spawnObstacle(){
     // old space junk, tumbling (from Mars on)
     game.obs.push({k:"junk", x:X, y:top + Math.random()*(bot - top), r:14, vx:-20, vy:(Math.random() - .5)*30, rot:Math.random()*6, spin:(Math.random() - .5)*2});
   }
-  game.nextObs = game.speed*(Math.max(.55, .95 - r*.05) + Math.random()*.38);
+  game.nextObs = game.speed*(Math.max(.55, .95 - r*.05) + Math.random()*.38)*dens();
 }
 function coinLine(x0, y, n, dy){ for (let i = 0; i < n; i++) game.coins.push({x:x0 + i*24, y: y + (dy || 0)*i, spin:i*.6}); }
 function coinWave(x0){ const y = 60 + Math.random()*(GROUND - 140); for (let i = 0; i < 5; i++) game.coins.push({x:x0 + i*24, y: y + Math.sin(i*.8)*22, spin:i*.6}); }
@@ -1386,7 +1388,7 @@ function update(dt){
   if (!moving) return;
   if (game.dist >= game.monsterAt){ startHole(); return; }
   // speed and distance
-  game.speed = Math.min(400, 188 + (game.round - 1)*16 + Math.min(35, game.roundDist*.07));
+  game.speed = Math.min(560, 188 + game.dist*.06 + (game.round - 1)*6);
   const dx = game.speed*dt; game.dist += dx/10; game.roundDist += dx/10;
   if (game.roundDist >= ROUND_LEN(game.round)){
     const bonus = 3*game.round; addCoins(bonus); game.round++; game.roundDist = 0; game.fadeT = 0;
