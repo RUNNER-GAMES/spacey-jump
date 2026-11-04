@@ -307,7 +307,7 @@ window.FIREBASE_CONFIG = {
     <div class="brand"><h1 id="brandTitle">Spacey Jump</h1><span>Tap to fly · Earth to Pluto</span></div>
     <div class="purse">
       <div class="chip" title="Coins to spend"><span class="coin-ic"></span><span id="hudCoins">0</span><small>coins</small></div>
-      <div class="chip" title="Ships unlocked"><span id="hudOwned">1</span><small id="hudTotal">/ 72 ships</small></div>
+      <div class="chip" title="Ships unlocked"><span id="hudOwned">1</span><small id="hudTotal">/ 73 ships</small></div>
       <div class="chip" title="Best flight"><small>Best</small><span id="hudBest">0 km</span></div>
     </div>
   </header>
@@ -460,12 +460,14 @@ const TIERS = [
   {key:"epic",      name:"Epic",      color:"#b77bff", weight:7,  refund:200},
   {key:"legendary", name:"Legendary", color:"#ffb23f", weight:3,  refund:300},
   {key:"mythic",    name:"Mythic",    color:"#ff5ea8", weight:3,  refund:500},
+  {key:"ultra",     name:"Ultra Mythic", color:"#ff3ad8", weight:.5, refund:1000},
 ];
 // Basic Chest: Mythic is a 3% chance. Epic Chest costs double and finds the good stuff far more often.
-const CHESTS = {basic:{name:"Basic Chest", cost:500, w:[48, 25, 14, 7, 3, 3]}, epic:{name:"Epic Chest", cost:1000, w:[8, 27, 32, 18, 8, 7]}};
+// Ultra Mythic sits above Mythic: a 0.5% chance in the Basic Chest and 1.5% in the Epic Chest
+const CHESTS = {basic:{name:"Basic Chest", cost:500, w:[47.5, 25, 14, 7, 3, 3, .5]}, epic:{name:"Epic Chest", cost:1000, w:[6.5, 27, 32, 18, 8, 7, 1.5]}};
 /* [tier, name, body, main color, accent, extras, exhaust stream, stream color 1, stream color 2]
    Bodies: rocket shuttle saucer fighter capsule needle cruiser pod retro
-   Extras: s stripe, c checkers, f flame decal, w extra fins, k crown, x THE CREATOR (shades and gold trim), n nose cone in accent
+   Extras: h hold-to-fly (instead of tapping), s stripe, c checkers, f flame decal, w extra fins, k crown, x THE CREATOR (shades and gold trim), n nose cone in accent
    Streams: smoke puff flame plasma spark rainbow star heart bubble pixel bolt ghost gold comet twin helix neon */
 const SHIP_LIST = [
   [0, "Starter Rocket",   "rocket",  "#e8ecf4", "#e0263a", "n",  "smoke", "#c8ccd8", "#8a8e9a"],
@@ -541,6 +543,8 @@ const SHIP_LIST = [
   [4, "Black Widow",      "fighter", "#1c1c22", "#e0263a", "fw", "twin",  "#ffd34d", "#e0263a"],
   [4, "Star Whale",       "cruiser", "#2a4a8a", "#7fd7ff", "w",  "bubble","#bff4ff", "#7fd7ff"],
   [5, "Alien Mothership", "saucer",  "#3ad83a", "#b77bff", "k",  "comet", "#c8ff9a", "#7dff5a"],
+  // ULTRA MYTHIC: a flying sports car. Hold to rise, let go to drop, instead of tapping.
+  [6, "Starlight GT",     "flycar",  "#eef0f4", "#c8202a", "h",  "jets",  "#9ad8ff", "#ffffff"],
 ];
 const CHARS = SHIP_LIST.map(([tier, name, body, main, accent, ex, trail, t1, t2], id) => ({id, tier, name, body, main, accent, ex, trail, t1, t2}));
 const SORTED = [...CHARS].sort((a, b) => a.tier - b.tier || a.id - b.id);
@@ -549,7 +553,7 @@ const carNo = c => "#" + String(DISPLAY_NO[c.id]).padStart(3, "0");
 const isCreator = c => c.name === "THE CREATOR";
 const tierCounts = TIERS.map((_, i) => CHARS.filter(c => c.tier === i).length);
 const TRAIL_NAME = {smoke:"Smoke trail", puff:"Colored smoke", flame:"Rocket flames", plasma:"Ion plasma", spark:"Sparkles", rainbow:"Rainbow stream", star:"Star trail", heart:"Heart trail", bubble:"Bubble trail",
-  pixel:"Pixel trail", bolt:"Lightning trail", ghost:"Ghost mist", gold:"Gold dust", comet:"Comet tail", twin:"Twin afterburners", helix:"Double helix", neon:"Neon stream"};
+  pixel:"Pixel trail", bolt:"Lightning trail", ghost:"Ghost mist", gold:"Gold dust", comet:"Comet tail", twin:"Twin afterburners", helix:"Double helix", neon:"Neon stream", jets:"Hover jets · hold to fly"};
 const THEMES = {};
 const themeFor = c => null;
 
@@ -629,6 +633,25 @@ function paintShip(c, s, opt){
       if (ex.includes("w")){ poly([[-16, -9], [-20, -16], [-8, -9]], A); poly([[-16, 9], [-20, 16], [-8, 9]], A); }
       R(18, -2, 6, 4, A, 1);
       break; }
+    case "flycar": {
+      // a long, low wedge sports car seen from the side, nose to the right: sharp low nose, raked windshield,
+      // a fastback roof sloping down to a tall squared-off tail, big wheels, and a lift thruster under each wheel
+      const T = sil ? M : "#c8ccd8", T2 = sil ? M : "#8a8e9a";
+      for (const wx of [-14, 15]){ poly([[wx - 4, 9], [wx + 4, 9], [wx + 2.6, 14], [wx - 2.6, 14]], T); poly([[wx - 4, 9], [wx - 1, 9], [wx - 1.6, 14], [wx - 2.6, 14]], T2); if (!sil){ c.fillStyle = "#2a2e38"; c.fillRect(wx - 2.6, 13.4, 5.2, 1.2); } }
+      poly([[-25, 5], [-25, -3], [-20, -5.5], [-8, -9.6], [2, -9.4], [10, -3.4], [27, 1.6], [27.5, 3.4], [25, 5.4]], M);
+      if (!sil){
+        poly([[9.4, -3.4], [2, -8.8], [-8, -9.1], [-17, -5.4], [-6, -4.4]], "#14161e");                              // long tinted glass
+        poly([[7.8, -3.6], [2.4, -7.8], [-1, -7.9], [3, -4]], "rgba(255,255,255,.22)");
+        poly([[-25, 1.2], [27, 2.8], [27.2, 3.6], [-25, 2.4]], shade(M, -.16));                                       // sharp side crease
+        poly([[-25, 5], [25, 5.4], [24, 6.6], [-24, 6.4]], shade(M, -.3));                                            // dark sill
+        R(-25.6, -3.4, 1.8, 5, A, .6); R(-25.6, -3.6, 4, 1.2, A, .4);                                                 // red tail light bar
+        R(25.6, 2, 1.6, .9, "#fff6c8", .4);                                                                            // headlight slit
+      }
+      for (const wx of [-14, 15]){
+        if (!sil){ c.fillStyle = shade(M, -.45); c.beginPath(); c.arc(wx, 5, 6.6, Math.PI, 0); c.fill(); }          // wheel arch
+        c.fillStyle = sil ? M : "#16161c"; c.beginPath(); c.arc(wx, 5.4, 5.6, 0, Math.PI*2); c.fill();
+        if (!sil){ c.fillStyle = "#c8ccd4"; c.beginPath(); c.arc(wx, 5.4, 3.8, 0, Math.PI*2); c.fill(); c.fillStyle = "#9aa0aa"; c.beginPath(); c.arc(wx, 5.4, 2.6, 0, Math.PI*2); c.fill(); c.fillStyle = "#3a3e48"; c.beginPath(); c.arc(wx, 5.4, .9, 0, Math.PI*2); c.fill(); } }
+      break; }
     case "pod": {
       R(-20, -5, 5, 10, sil ? M : "#3a3e48", 2);
       c.fillStyle = M; c.beginPath(); c.ellipse(0, 0, 17, 11, 0, 0, Math.PI*2); c.fill();
@@ -648,12 +671,16 @@ function paintShip(c, s, opt){
     c.fillStyle = "#05070c"; c.fillRect(-2, -2.4, 6, 2.6); c.fillRect(4, -1.6, 3, 1.2); }                         // gold trim and shades on the porthole
   if (ex.includes("k")){ const y = s.body === "saucer" ? -13 : -8; c.fillStyle = "#ffd34d"; c.beginPath(); c.moveTo(-5, y); c.lineTo(-5, y - 5); c.lineTo(-2.5, y - 2.5); c.lineTo(0, y - 6); c.lineTo(2.5, y - 2.5); c.lineTo(5, y - 5); c.lineTo(5, y); c.closePath(); c.fill(); }
 }
+const circ2 = (c, x, y, r, col) => { c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, Math.PI*2); c.fill(); };
 // a ship on a card or preview. (x, y) is the bottom middle of the picture.
 function drawChar(ctx, c, o){
   const s = (o.s || 4.4)*.7, t = o.t || 0;
   ctx.save(); ctx.translate(o.x, o.y - 17*s/3.1); ctx.scale(s, s);
   if (o.anim) ctx.translate(0, Math.sin(t*3)*1.2);
-  if (!o.sil){ const k = c.trail, pal = [c.t1, c.t2];
+  if (c.trail === "jets") ctx.translate(0, -9);
+  if (!o.sil && c.trail === "jets"){ for (const wx of [-14, 15]){ circ2(ctx, wx - 3, 27, 4, "rgba(232,236,244,.55)"); circ2(ctx, wx + 3, 29, 4.6, "rgba(232,236,244,.45)"); const g = ctx.createLinearGradient(0, 14, 0, 30); g.addColorStop(0, "rgba(220,245,255,.95)"); g.addColorStop(.4, "rgba(120,200,255,.75)"); g.addColorStop(1, "rgba(90,170,255,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(wx - 2.4, 14); ctx.lineTo(wx + 2.4, 14); ctx.lineTo(wx + 1.2, 26); ctx.lineTo(wx - 1.2, 26); ctx.closePath(); ctx.fill(); } }
+  else if (!o.sil){ const k = c.trail, pal = [c.t1, c.t2];
     for (let i = 0; i < 6; i++){ const x = -26 - i*5, a = .7 - i*.1; ctx.globalAlpha = Math.max(.1, a); ctx.fillStyle = pal[i % 2];
       if (k === "heart"){ ctx.beginPath(); ctx.arc(x - 1, -1, 1.6, 0, Math.PI*2); ctx.arc(x + 1, -1, 1.6, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.moveTo(x - 2.6, -.4); ctx.lineTo(x, 2.6); ctx.lineTo(x + 2.6, -.4); ctx.fill(); }
       else if (k === "pixel") ctx.fillRect(x - 1.5, -1.5 + (i % 2 ? 2 : -2), 3, 3);
@@ -1025,7 +1052,7 @@ let chestKind = "basic";
 function rollChar(kind){
   const w = CHESTS[kind || "basic"].w; let r = Math.random() * 100, tier = 0;
   for (let i=0;i<w.length;i++){ if (r < w[i]){ tier=i; break; } r -= w[i]; tier = i; }
-  const pool = CHARS.filter(c=>c.tier===Math.min(tier, 5) && !c.starter);
+  const pool = CHARS.filter(c=>c.tier===Math.min(tier, 6) && !c.starter);
   return pool[Math.floor(Math.random()*pool.length)];
 }
 const cfChestCtx = setupCanvas($("cfChest")), cfCharCtx = setupCanvas($("cfChar"));
@@ -1038,13 +1065,14 @@ const CHEST_FX = [
   {dur:1.9, rayop:.28, rayspd:10, glow:18, flash:.6,  conf:100, coins:0,  hints:[[.4,"Something's glowing…"],[.75,"It's getting stronger!"]]},
   {dur:2.4, rayop:.34, rayspd:7,  glow:26, flash:.85, conf:160, coins:40, hints:[[.3,"Something's glowing…"],[.6,"It's getting stronger!"],[.85,"Here it comes…"]]},
   {dur:3.2, rayop:.42, rayspd:4,  glow:34, flash:1,   conf:260, coins:70, hints:[[.25,"Something's glowing…"],[.5,"The ground is shaking…"],[.75,"This is no ordinary chest…"],[.92,"!!!"]]},
+  {dur:4.2, rayop:.5,  rayspd:3,  glow:44, flash:1,   conf:400, coins:120, hints:[[.2,"Something's glowing…"],[.4,"The ground is shaking…"],[.6,"This is no ordinary chest…"],[.8,"WHAT IS THAT?!"],[.93,"!!!!!"]]},
 ];
 const cfFx = $("cfFx"), cfFxCtx = cfFx.getContext("2d");
 let cfParts = [], cfTimers = [];
 function cfSize(){ const d = Math.min(devicePixelRatio || 1, 2); cfFx.width = innerWidth * d; cfFx.height = innerHeight * d; cfFxCtx.setTransform(d,0,0,d,0,0); }
 function cfBurst(tier){
   const fx = CHEST_FX[tier], r = $("cfChest").getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height*.45;
-  const cols = [["#ffffff"],["#6fd36a","#c8f5c0","#ffffff"],["#4aa8ff","#bfe2ff","#ffffff"],["#b77bff","#ff8ad8","#ffffff"],["#ffb23f","#ffd34d","#fff3b0","#ffffff"],["#ff4f6b","#ffd34d","#5fe03a","#2de2e6","#b77bff","#ffffff"]][tier];
+  const cols = [["#ffffff"],["#6fd36a","#c8f5c0","#ffffff"],["#4aa8ff","#bfe2ff","#ffffff"],["#b77bff","#ff8ad8","#ffffff"],["#ffb23f","#ffd34d","#fff3b0","#ffffff"],["#ff4f6b","#ffd34d","#5fe03a","#2de2e6","#b77bff","#ffffff"],["#ff3ad8","#ffd34d","#2de2e6","#ffffff","#b77bff","#5fe03a"]][tier];
   for (let i = 0; i < fx.conf; i++){ const a = Math.random()*Math.PI*2, sp = 200 + Math.random()*(300 + tier*120);
     cfParts.push({k:"c", x:cx, y:cy, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 200, r:Math.random()*6, vr:(Math.random()-.5)*12, w:5 + Math.random()*5, h:3 + Math.random()*4, col:cols[i % cols.length], life:2.4 + Math.random()*1.2}); }
   for (let i = 0; i < fx.coins; i++) cfParts.push({k:"o", x:Math.random()*innerWidth, y:-20 - Math.random()*innerHeight*.8, vx:(Math.random()-.5)*40, vy:120 + Math.random()*160, r:0, vr:4 + Math.random()*6, life:5});
@@ -1073,7 +1101,7 @@ function openChest(kind){
   const el = $("chestFull"), fx = CHEST_FX[c.tier];
   cfTimers.forEach(clearTimeout); cfTimers = []; cfParts = []; cfSize();
   el.hidden = false; el.classList.remove("revealed","glowing","quake","dim"); el.classList.add("shaking");
-  el.dataset.tier = c.tier;
+  el.dataset.tier = Math.min(c.tier, 5);
   el.style.setProperty("--cf", t.color); el.style.setProperty("--rayop", fx.rayop); el.style.setProperty("--rayspd", fx.rayspd + "s");
   el.style.setProperty("--glowpx", fx.glow + "px"); el.style.setProperty("--flash", fx.flash); el.style.setProperty("--shk", ".16s");
   $("cfHint").textContent = "Opening…";
@@ -1092,7 +1120,7 @@ function openChest(kind){
     $("cfNote").textContent = (themeFor(c) ? `` : "") + TRAIL_NAME[c.trail] + " · " + (isNew ? `New ship! ${carNo(c)} of ${CHARS.length}` : `You already had this one · +${t.refund} coins back`);
     el.classList.remove("shaking","dim"); el.classList.add("revealed"); cfRevealed = true; Sound.reveal(c.tier);
     if (c.tier >= 4){ el.classList.remove("quake"); void el.offsetWidth; el.classList.add("quake"); }
-    if (c.tier >= 5) $("cfTier").textContent = "Mythic!";
+    if (c.tier >= 5) $("cfTier").textContent = c.tier >= 6 ? "ULTRA MYTHIC!!" : "Mythic!";
     cfBurst(c.tier);
     $("cfRun").hidden = state.selected === c.id;
     $("cfAgain").hidden = state.coins < CHESTS[chestKind].cost;
@@ -1196,7 +1224,7 @@ function resetRun(){
     paused:false, nextObs:340, trailT:0, monsterEnd:false, mt:0, fadeT:9, crashed:false, lastWall:0});
 }
 function startRun(){
-  resetRun(); game.state = "running"; game.vy = FLAP*.8;
+  resetRun(); game.state = "running"; game.vy = FLAP*.8; game.holding = false;
   game.monsterAt = (TEST.hole || (!TEST.on && Math.random() < HOLE_CHANCE)) ? (TEST.hole ? 40 : 250 + Math.random()*1300) : Infinity; TEST.hole = false;
   $("overCta").hidden = true; Sound.start();
   if (!isFS()){ const r = document.querySelector(".cabinet").getBoundingClientRect(); if (r.top < 0 || r.bottom > window.innerHeight) document.querySelector(".cabinet").scrollIntoView({behavior:"smooth", block: r.height > window.innerHeight ? "start" : "center"}); }
@@ -1214,8 +1242,10 @@ function endRun(){
   if (Saves.mode !== "fire" && Saves.auth){ $("ocSum").textContent = `${fmt(d)} km · ${planetFor(game.round).name} · +${game.runCoins} coins`; $("overCta").hidden = false; }
 }
 function addCoins(n){ game.runCoins += n; if (!TEST.on){ state.coins += n; state.lifetimeCoins += n; renderHUD(); } }
+const holdShip = () => curCar().ex.includes("h");
 function flap(){
   if (game.state !== "running" || game.paused) return;
+  if (holdShip()){ game.holding = true; Sound.thrust(); return; }
   game.vy = FLAP; Sound.thrust(); puff(10);
 }
 
@@ -1311,6 +1341,11 @@ function emitTrail(big){
     case "twin":  P({y: y - 4, r:3.6, life:.35, max:.35, vy:0}); P({y: y + 4, r:3.6, life:.35, max:.35, vy:0}); break;
     case "helix": P({col:c.t1, r:2.6, life:.8, max:.8, vy:0, ph:game.t*9, amp:6}); P({col:c.t2, r:2.6, life:.8, max:.8, vy:0, ph:game.t*9 + Math.PI, amp:6}); break;
     case "neon":  P({col:two, r:3, vy:0, life:.6, max:.6}); break;
+    case "jets": for (const tx of [-14, 15]){ const jx = PX + (tx*cs - 14*sn)*SS, jy = game.py + (tx*sn + 14*cs)*SS;
+        game.trail.push({x:jx + (Math.random() - .5)*3, y:jy, vx:-game.speed*.1 + (Math.random() - .5)*14, vy:(big ? 260 : 120) + Math.random()*60, life: big ? .32 : .2, max: big ? .32 : .2, r: big ? 3.4 : 2.2, col: Math.random() < .5 ? c.t1 : c.t2, k:"jet"});
+        // smoke billows straight down out of each thruster
+        if (Math.random() < (big ? .7 : .12)) game.trail.push({x:jx + (Math.random() - .5)*4, y:jy + 4 + Math.random()*6, vx:-game.speed*.08 + (Math.random() - .5)*24, vy:(big ? 95 : 45) + Math.random()*45, life:1, max:1, r:3 + Math.random()*3, col: Math.random() < .75 ? "#e8ecf4" : "#f0b0b8", k:"smoke"}); }
+      break;
   }
 }
 function drawTrail(){
@@ -1326,6 +1361,7 @@ function drawTrail(){
       case "pixel": ctx.fillStyle = p.col; ctx.fillRect(Math.round(p.x - p.r/2), Math.round(p.y - p.r/2), p.r, p.r); break;
       case "bolt": ctx.strokeStyle = p.col; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(p.x - 3, p.y - p.r); ctx.lineTo(p.x + 2, p.y - 1); ctx.lineTo(p.x - 2, p.y + 1); ctx.lineTo(p.x + 3, p.y + p.r); ctx.stroke(); break;
       case "helix": circ(p.x, p.y + Math.sin(p.ph)*p.amp*a, p.r, p.col); break;
+      case "jet": ctx.fillStyle = p.col; ctx.fillRect(p.x - p.r*.6, p.y - p.r*1.4, p.r*1.2, p.r*2.8); ctx.globalAlpha = a*.35; circ(p.x, p.y, p.r*1.6, "#5ab8ff"); break;
       default: circ(p.x, p.y, p.r, p.col);
     } }
   ctx.globalAlpha = 1;
@@ -1356,10 +1392,12 @@ function update(dt){
     game.banner = {text: "Now arriving: " + p.name, sub: p.sub + " · +" + bonus + " coins", t:2.6}; Sound.planet(); Saves.save();
   }
   // flying
-  game.vy = Math.min(MAXFALL, game.vy + GRAV*dt); game.py += game.vy*dt;
+  if (holdShip()){ game.vy += (game.holding ? -2350 : GRAV)*dt; game.vy = Math.max(-330, Math.min(MAXFALL, game.vy)); }
+  else game.vy = Math.min(MAXFALL, game.vy + GRAV*dt);
+  game.py += game.vy*dt;
   if (game.py < 14){ game.py = 14; game.vy = Math.max(0, game.vy); }
   game.tilt += (Math.max(-.45, Math.min(.6, game.vy/900)) - game.tilt)*Math.min(1, dt*10);
-  game.trailT += dt*22; while (game.trailT >= 1){ game.trailT--; emitTrail(false); }
+  game.trailT += dt*(holdShip() && game.holding ? 40 : 22); while (game.trailT >= 1){ game.trailT--; emitTrail(holdShip() && game.holding); }
   if (game.py + 9*SS >= GROUND){ game.py = GROUND - 9*SS; game.cause = "ground"; return crash(); }
   // obstacles
   game.nextObs -= dx; if (game.nextObs <= 0) spawnObstacle();
@@ -1583,7 +1621,7 @@ function draw(){
   if (game.state === "ready"){
     ctx.fillStyle = "rgba(4,6,16,.45)"; ctx.fillRect(0, VT, GW, VB - VT);
     text("SPACEY JUMP", GW/2, oy, GW < 440 ? 30 : 36, "#7fd7ff", "center");
-    text(isPhone() ? "Tap to fire your thrusters" : "Click or press Space to fire your thrusters", GW/2, oy + 30, 13, "#f4f0e8", "center");
+    text(holdShip() ? (isPhone() ? "Hold your finger down to fly, let go to drop" : "Hold the mouse or Space to fly, let go to drop") : (isPhone() ? "Tap to fire your thrusters" : "Click or press Space to fire your thrusters"), GW/2, oy + 30, 13, "#f4f0e8", "center");
     text("Don't fall · dodge the space rocks · reach new planets", GW/2, oy + 50, 11, "#b8bcd8", "center");
     text(isPhone() ? "Tap to launch" : "Click or press Space to launch", GW/2, oy + 78, 14, "#ffd27a", "center");
   }
@@ -1629,6 +1667,9 @@ document.addEventListener("keydown", e => {
   else if (e.code === "KeyP" && game.state === "running") game.paused = !game.paused;
 });
 cv.addEventListener("pointerdown", e => { e.preventDefault(); Sound.wake(); go(); });
+const letGo = () => { game.holding = false; };
+cv.addEventListener("pointerup", letGo); cv.addEventListener("pointercancel", letGo); cv.addEventListener("pointerleave", letGo);
+document.addEventListener("keyup", e => { if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Enter") letGo(); });
 cv.addEventListener("contextmenu", e => e.preventDefault());
 const sideways = matchMedia("(pointer:coarse) and (orientation:landscape) and (max-height:520px)");
 const onSideways = () => { if (sideways.matches && game.state === "running") game.paused = true; };
