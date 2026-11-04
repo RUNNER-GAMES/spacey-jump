@@ -1386,31 +1386,36 @@ function starP(x, y, r, rot){ ctx.beginPath(); for (let i = 0; i < 10; i++){ con
 const hash = (k, s) => { let h = Math.imul(k | 0, 374761393) + Math.imul(s | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return (h ^ (h >>> 16)) >>> 0; };
 // star layers that drift by at different speeds
 function starField(speed, seg, per, size, alpha){ const sc = game.scroll*speed, k0 = Math.floor(sc/seg) - 1, k1 = Math.floor((sc + GW)/seg) + 1;
-  for (let k = k0; k <= k1; k++) for (let i = 0; i < per; i++){ const h = hash(k, i + per*31), x = k*seg + (h % seg) - sc, y = (h >>> 9) % GROUND;
+  for (let k = k0; k <= k1; k++) for (let i = 0; i < per*(VT < 0 ? 2 : 1); i++){ const h = hash(k, i + per*31), x = k*seg + (h % seg) - sc, y = VT + (h >>> 9) % Math.max(1, Math.round(GROUND - VT));
     ctx.fillStyle = h % 5 === 0 ? `rgba(180,210,255,${alpha})` : h % 7 === 0 ? `rgba(255,230,190,${alpha})` : `rgba(255,255,255,${alpha})`; ctx.fillRect(x, y, size, size); } }
+let VT = 0, VB = 340;                          // the top and bottom of what's on screen (bigger than the play box on phones)
 function drawPlanet(p, idx){
-  const g = ctx.createLinearGradient(0, 0, 0, GROUND); g.addColorStop(0, p.sky[0]); g.addColorStop(.6, p.sky[1]); g.addColorStop(1, p.sky[2]);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, GW, GH);
+  const g = ctx.createLinearGradient(0, Math.min(0, VT*.5), 0, GROUND); g.addColorStop(0, p.sky[0]); g.addColorStop(.6, p.sky[1]); g.addColorStop(1, p.sky[2]);
+  ctx.fillStyle = g; ctx.fillRect(0, VT, GW, VB - VT);
   starField(.04, 90, 3, 1, .55); starField(.1, 120, 3, 2, .8);
   // something in the sky for each stop
   const far = (x0, speed) => ((x0 - game.scroll*speed) % (GW + 300) + GW + 300) % (GW + 300) - 150;
-  if (idx === 1){ const x = far(GW*.75, .02), y = GH*.22; circ(x, y, 18, "#2a6ac8"); ctx.fillStyle = "#3a9a4a"; ctx.fillRect(x - 8, y - 6, 9, 6); ctx.fillRect(x + 2, y + 3, 7, 5); circ(x - 4, y - 8, 4, "rgba(255,255,255,.7)"); }
-  if (idx === 0 || idx === 2){ const x = far(GW*.85, .015), y = GH*.18; circ(x, y, 14, "rgba(255,240,180,.25)"); circ(x, y, 8, "#fff3b0"); }
+  const skyY = f => VT < 0 ? VT*.55 + 40 + f*120 : GH*f;
+  if (idx === 1){ const x = far(GW*.75, .02), y = skyY(.22); circ(x, y, 18, "#2a6ac8"); ctx.fillStyle = "#3a9a4a"; ctx.fillRect(x - 8, y - 6, 9, 6); ctx.fillRect(x + 2, y + 3, 7, 5); circ(x - 4, y - 8, 4, "rgba(255,255,255,.7)"); }
+  if (idx === 0 || idx === 2){ const x = far(GW*.85, .015), y = skyY(.18); circ(x, y, 14, "rgba(255,240,180,.25)"); circ(x, y, 8, "#fff3b0"); }
   if (idx === 4){ ctx.save(); ctx.translate(GW*.5, GROUND + GW*1.1); ctx.rotate(-.12); ctx.strokeStyle = "rgba(232,208,152,.35)"; for (let i = 0; i < 4; i++){ ctx.lineWidth = 6 - i; ctx.beginPath(); ctx.ellipse(0, 0, GW*1.5 + i*18, GW*1.25 + i*14, 0, Math.PI*1.15, Math.PI*1.85); ctx.stroke(); } ctx.restore(); }
-  if (idx === 8){ for (let i = 0; i < 3; i++){ const x = far(GW*(.2 + i*.35), .03 + i*.01), y = GH*(.2 + i*.15), r = 70 + i*20; const ng = ctx.createRadialGradient(x, y, 0, x, y, r); ng.addColorStop(0, i % 2 ? "rgba(255,79,163,.18)" : "rgba(120,90,255,.18)"); ng.addColorStop(1, "rgba(0,0,0,0)"); ctx.fillStyle = ng; ctx.fillRect(x - r, y - r, r*2, r*2); } }
-  // the planet's surface: a huge curve along the bottom
+  if (idx === 8){ for (let i = 0; i < 3; i++){ const x = far(GW*(.2 + i*.35), .03 + i*.01), y = skyY(.2 + i*.15), r = 70 + i*20; const ng = ctx.createRadialGradient(x, y, 0, x, y, r); ng.addColorStop(0, i % 2 ? "rgba(255,79,163,.18)" : "rgba(120,90,255,.18)"); ng.addColorStop(1, "rgba(0,0,0,0)"); ctx.fillStyle = ng; ctx.fillRect(x - r, y - r, r*2, r*2); } }
+  // the planet: a huge curve along the bottom of the play area, and on phones the planet fills the screen below it
   const R = Math.max(GW, 600)*2.2, cx = GW/2, cy = GROUND + R - 4;
   ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.clip();
-  const sg = ctx.createLinearGradient(0, GROUND - 20, 0, GH); sg.addColorStop(0, p.surf[0]); sg.addColorStop(1, p.surf[1]); ctx.fillStyle = sg; ctx.fillRect(0, GROUND - 30, GW, GH - GROUND + 30);
-  const span = 260, off = (game.scroll*.9) % span;
-  for (let x = -off - span; x < GW + span; x += span){ const k = Math.floor((x + game.scroll*.9)/span), h = hash(k, idx + 3);
-    if (idx === 0){ ctx.fillStyle = p.land; ctx.beginPath(); ctx.ellipse(x + 60 + h % 80, GROUND + 6, 50 + h % 40, 8, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.beginPath(); ctx.ellipse(x + 160 + h % 60, GROUND + 2, 26, 3, 0, 0, Math.PI*2); ctx.fill(); }
-    else if (idx === 1 || idx === 7){ for (let j = 0; j < 3; j++){ const cxr = x + 30 + j*80 + (h >>> j*4) % 30, rr = 6 + (h >>> j*3) % 10; ctx.fillStyle = rgba(p.surf[1], .9); ctx.beginPath(); ctx.ellipse(cxr, GROUND + 8 + j*3, rr*1.6, rr*.45, 0, 0, Math.PI*2); ctx.fill(); }
-      if (idx === 7 && h % 3 === 0){ ctx.fillStyle = p.land; ctx.beginPath(); ctx.ellipse(x + 120, GROUND + 12, 36, 7, 0, 0, Math.PI*2); ctx.fill(); } }
-    else if (idx === 2){ ctx.fillStyle = p.land; ctx.beginPath(); ctx.ellipse(x + 90 + h % 70, GROUND + 9, 60, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = rgba(p.land, .6); ctx.beginPath(); ctx.ellipse(x + 30, GROUND + 4, 14, 3, 0, 0, Math.PI*2); ctx.fill(); }
-    else if (idx === 3){ if (h % 4 === 0){ ctx.fillStyle = p.land; ctx.beginPath(); ctx.ellipse(x + 120, GROUND + 10, 22, 7, 0, 0, Math.PI*2); ctx.fill(); } }
-    else if (idx === 8){ ctx.fillStyle = rgba(p.land, .25); ctx.beginPath(); ctx.ellipse(x + 80 + h % 80, GROUND + 8, 70, 5, 0, 0, Math.PI*2); ctx.fill(); } }
-  if (idx >= 3 && idx <= 6){ for (let i = 0; i < 4; i++){ ctx.fillStyle = i % 2 ? rgba(p.land, .35) : "rgba(255,255,255,.12)"; ctx.fillRect(0, GROUND + 4 + i*6, GW, 3); } }
+  const sg = ctx.createLinearGradient(0, GROUND - 20, 0, Math.max(GH, VB)); sg.addColorStop(0, p.surf[0]); sg.addColorStop(1, p.surf[1]); ctx.fillStyle = sg; ctx.fillRect(0, GROUND - 30, GW, Math.max(GH, VB) - GROUND + 30);
+  // rows of surface detail; rows further down the screen are closer, so they're bigger and slide by faster
+  for (let d = 0; ; d++){ const yb = GROUND + 6 + (d ? 26*Math.pow(d, 1.35) : 0), k = 1 + d*.55, sp = .9 + d*.35; if (d > 0 && yb - 20 > VB) break; if (d > 14) break;
+    const span = 260*k, off = (game.scroll*sp) % span;
+    for (let x = -off - span; x < GW + span; x += span){ const kk = Math.floor((x + game.scroll*sp)/span), h = hash(kk, idx + 3 + d*17);
+      if (idx === 0){ ctx.fillStyle = p.land; ctx.beginPath(); ctx.ellipse(x + (60 + h % 80)*k, yb, (50 + h % 40)*k, 8*k, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.5)"; ctx.beginPath(); ctx.ellipse(x + (160 + h % 60)*k, yb - 4*k, 26*k, 3*k, 0, 0, Math.PI*2); ctx.fill(); }
+      else if (idx === 1 || idx === 7){ for (let j = 0; j < 3; j++){ const cxr = x + (30 + j*80 + (h >>> j*4) % 30)*k, rr = (6 + (h >>> j*3) % 10)*k; ctx.fillStyle = rgba(p.surf[1], .9); ctx.beginPath(); ctx.ellipse(cxr, yb + 2 + j*3*k, rr*1.6, rr*.45, 0, 0, Math.PI*2); ctx.fill(); }
+        if (idx === 7 && h % 3 === 0){ ctx.fillStyle = p.land; ctx.beginPath(); ctx.ellipse(x + 120*k, yb + 6, 36*k, 7*k, 0, 0, Math.PI*2); ctx.fill(); } }
+      else if (idx === 2){ ctx.fillStyle = p.land; ctx.beginPath(); ctx.ellipse(x + (90 + h % 70)*k, yb + 3, 60*k, 6*k, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = rgba(p.land, .6); ctx.beginPath(); ctx.ellipse(x + 30*k, yb - 2, 14*k, 3*k, 0, 0, Math.PI*2); ctx.fill(); }
+      else if (idx === 3){ if (h % 4 === 0){ ctx.fillStyle = p.land; ctx.beginPath(); ctx.ellipse(x + 120*k, yb + 4, 22*k, 7*k, 0, 0, Math.PI*2); ctx.fill(); } }
+      else if (idx === 8){ ctx.fillStyle = rgba(p.land, .25); ctx.beginPath(); ctx.ellipse(x + (80 + h % 80)*k, yb + 2, 70*k, 5*k, 0, 0, Math.PI*2); ctx.fill(); } } }
+  // the gas giants are striped all the way down
+  if (idx >= 3 && idx <= 6){ for (let i = 0, y = GROUND + 4; y < Math.max(GH, VB); i++){ const hgt = 3 + i*1.2; ctx.fillStyle = i % 2 ? rgba(p.land, .35) : "rgba(255,255,255,.12)"; ctx.fillRect(0, y, GW, hgt); y += hgt*2; } }
   ctx.restore();
   if (idx === 1){ const span2 = 900, off2 = (game.scroll*.9) % span2;
     for (let x = -off2; x < GW + span2; x += span2){ const fx = x + 420; if (fx < -40 || fx > GW + 40) continue; const sy = cy - Math.sqrt(R*R - (fx - cx)*(fx - cx)) + 3; drawFlag(fx, sy); } }
@@ -1515,9 +1520,10 @@ function text(str, x, y, size, col, align, kind){
 }
 function draw(){
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  if (OFY || OFX){ const g0 = ctx.createLinearGradient(0, 0, 0, cv.height); g0.addColorStop(0, "#05060e"); g0.addColorStop(1, "#0a0c1c"); ctx.fillStyle = g0; ctx.fillRect(0, 0, cv.width, cv.height); }
+  if (OFX){ ctx.fillStyle = "#05060e"; ctx.fillRect(0, 0, cv.width, cv.height); }
   ctx.setTransform(SCALE, 0, 0, SCALE, OFX, OFY);
-  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, GW, GH); ctx.clip();
+  VT = -OFY/SCALE; VB = (cv.height - OFY)/SCALE;
+  ctx.save();
   drawBG();
   if (game.state === "monster") drawHole();
   game.coins.forEach(drawCoin);
@@ -1531,8 +1537,8 @@ function draw(){
   game.parts.forEach(p => { ctx.globalAlpha = Math.max(0, Math.min(1, p.life*2)); ctx.fillStyle = p.col; ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3); }); ctx.globalAlpha = 1;
   game.texts.forEach(x => { ctx.globalAlpha = Math.max(0, Math.min(1, (1.1 - x.t)*3)); text(x.txt, x.x, x.y - x.t*22, 11, x.col, "center"); }); ctx.globalAlpha = 1;
   // HUD
-  { const L = 10, top = 20, p = planetFor(game.round);
-    ctx.fillStyle = "rgba(4,4,12,.5)"; ctx.fillRect(0, 0, GW, 48);
+  { const L = 10, top = VT + 20, p = planetFor(game.round);
+    ctx.fillStyle = "rgba(4,4,12,.5)"; ctx.fillRect(0, VT, GW, 48);
     text(p.name.toUpperCase(), L, top, 10, "#ffd27a", "left", "num");
     ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(L, top + 7, 110, 5); ctx.fillStyle = "#7fd7ff"; ctx.fillRect(L, top + 7, 110*Math.min(1, game.roundDist/ROUND_LEN(game.round)), 5);
     if (game.round < PLANETS.length) text("NEXT: " + planetFor(game.round + 1).name.toUpperCase(), L, top + 22, 6, "#a8b0c8", "left", "num");
@@ -1544,14 +1550,14 @@ function draw(){
   if (game.banner && game.state === "running"){ const a = Math.min(1, game.banner.t*2); ctx.globalAlpha = a; text(game.banner.text, GW/2, oy, game.banner.text.length > 18 ? 20 : 26, "#ffd27a", "center"); text(game.banner.sub, GW/2, oy + 22, 12, "#f4f0e8", "center"); ctx.globalAlpha = 1; }
   if (game.state === "monster" && game.mt > .3) text("BLACK HOLE!", GW/2, oy - 30, 28, "#c89aff", "center");
   if (game.state === "ready"){
-    ctx.fillStyle = "rgba(4,6,16,.45)"; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = "rgba(4,6,16,.45)"; ctx.fillRect(0, VT, GW, VB - VT);
     text("SPACEY JUMP", GW/2, oy, GW < 440 ? 30 : 36, "#7fd7ff", "center");
     text(isPhone() ? "Tap to fire your thrusters" : "Click or press Space to fire your thrusters", GW/2, oy + 30, 13, "#f4f0e8", "center");
     text("Don't fall · dodge the space rocks · reach new planets", GW/2, oy + 50, 11, "#b8bcd8", "center");
     text(isPhone() ? "Tap to launch" : "Click or press Space to launch", GW/2, oy + 78, 14, "#ffd27a", "center");
   }
   if (game.state === "over"){
-    ctx.fillStyle = game.monsterEnd ? "rgba(2,0,6,.9)" : "rgba(4,6,16,.6)"; ctx.fillRect(0, 0, GW, GH);
+    ctx.fillStyle = game.monsterEnd ? "rgba(2,0,6,.9)" : "rgba(4,6,16,.6)"; ctx.fillRect(0, VT, GW, VB - VT);
     if (game.monsterEnd){ text("SWALLOWED BY", GW/2, oy - 14, 18, "#c89aff", "center"); text("A BLACK HOLE!", GW/2, oy + 14, 28, "#ff7ad8", "center"); }
     else text("CRASHED!", GW/2, oy + 6, 32, "#ff6a4a", "center");
     text(fmt(Math.floor(game.dist)) + " km", GW/2, oy + 44, 20, "#ffffff", "center", "num");
@@ -1560,9 +1566,8 @@ function draw(){
     text(state.coins >= CHESTS.basic.cost ? (isFS() ? "Tap Exit to open a chest" : "You can open a chest below") : fmt(CHESTS.basic.cost - state.coins) + " coins until a Basic Chest", GW/2, oy + 112, 12, "#f4f0e8", "center");
     text(isPhone() ? "Tap to fly again" : "Click or press Space to fly again", GW/2, oy + 134, 13, "#c8cce8", "center");
   }
-  if (game.paused){ ctx.fillStyle = "rgba(4,6,16,.5)"; ctx.fillRect(0, 0, GW, GH); text("PAUSED", GW/2, oy, 28, "#f4f0e8", "center"); text("Tap or press P to continue", GW/2, oy + 24, 12, "#b8bcd8", "center"); }
+  if (game.paused){ ctx.fillStyle = "rgba(4,6,16,.5)"; ctx.fillRect(0, VT, GW, VB - VT); text("PAUSED", GW/2, oy, 28, "#f4f0e8", "center"); text("Tap or press P to continue", GW/2, oy + 24, 12, "#b8bcd8", "center"); }
   ctx.restore();
-  if (OFY){ ctx.strokeStyle = "rgba(127,215,255,.35)"; ctx.lineWidth = 1.5; ctx.strokeRect(0, 0, GW, GH); }
 }
 let last = performance.now();
 function frame(now){
