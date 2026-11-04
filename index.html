@@ -553,7 +553,7 @@ const carNo = c => "#" + String(DISPLAY_NO[c.id]).padStart(3, "0");
 const isCreator = c => c.name === "THE CREATOR";
 const tierCounts = TIERS.map((_, i) => CHARS.filter(c => c.tier === i).length);
 const TRAIL_NAME = {smoke:"Smoke trail", puff:"Colored smoke", flame:"Rocket flames", plasma:"Ion plasma", spark:"Sparkles", rainbow:"Rainbow stream", star:"Star trail", heart:"Heart trail", bubble:"Bubble trail",
-  pixel:"Pixel trail", bolt:"Lightning trail", ghost:"Ghost mist", gold:"Gold dust", comet:"Comet tail", twin:"Twin afterburners", helix:"Double helix", neon:"Neon stream", jets:"Hover jets · hold to fly"};
+  pixel:"Pixel trail", bolt:"Lightning trail", ghost:"Ghost mist", gold:"Gold dust", comet:"Comet tail", twin:"Twin afterburners", helix:"Double helix", neon:"Neon stream", jets:"Hover jets · hold to fly · hood laser"};
 const THEMES = {};
 const themeFor = c => null;
 
@@ -969,6 +969,8 @@ const Sound = (() => {
     planet(){ if (!ok()) return; [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .28, {type:"triangle", vol:.08, at:i*.08})); tone(262, .9, {type:"sine", vol:.08, at:.1}); },
     // a comet coming: two quick soft beeps
     comet(){ if (!ok() || !lim("comet", .3)) return; [0, .12].forEach(d => tone(1760, .07, {type:"sine", vol:.06, at:d})); },
+    // the flying car's hood laser: a sharp zap and a pop
+    laser(){ if (!ok()) return; tone(1800, .16, {type:"sawtooth", vol:.06, slide:400, cutoff:6000}); tone(2600, .1, {type:"square", vol:.03, cutoff:5000}); noise(.3, {vol:.2, at:.05, lp:1400}); tone(90, .3, {type:"sine", vol:.3, at:.05, slide:40}); },
     // crash: a boom and falling debris
     crash(){ if (!ok()) return; noise(.7, {vol:.45, lp:900}); tone(80, .6, {type:"sine", vol:.5, slide:30}); for (let i = 0; i < 6; i++) tone(1500 + Math.random()*2000, .07, {type:"triangle", vol:.04, at:.1 + i*.06}); },
     // the black hole: a deep rumble that bends downward, and a long fading whoosh
@@ -1220,7 +1222,7 @@ const HOLE_CHANCE = 1/100;                    // about 1 run in 100 meets a blac
 const FLAP = -360, GRAV = 1050, MAXFALL = 500;
 const game = {state:"ready", t:0, speed:0, dist:0, round:1, roundDist:0, runCoins:0, py:180, vy:0, tilt:0, obs:[], coins:[], parts:[], trail:[], texts:[], banner:null, paused:false, scroll:0, nextObs:0, mt:0, fadeT:9};
 function resetRun(){
-  Object.assign(game, {t:0, speed:190, dist:0, round:1, roundDist:0, runCoins:0, py:GH*.42, vy:0, tilt:0, obs:[], coins:[], parts:[], trail:[], texts:[], banner:{text:"Earth", sub: TEST.on ? "Test flight" : "Tap to fire your thrusters. Don't fall!", t:2.2},
+  Object.assign(game, {laser:null, t:0, speed:190, dist:0, round:1, roundDist:0, runCoins:0, py:GH*.42, vy:0, tilt:0, obs:[], coins:[], parts:[], trail:[], texts:[], banner:{text:"Earth", sub: TEST.on ? "Test flight" : "Tap to fire your thrusters. Don't fall!", t:2.2},
     paused:false, nextObs:340, trailT:0, monsterEnd:false, mt:0, fadeT:9, crashed:false, lastWall:0});
 }
 function startRun(){
@@ -1392,7 +1394,7 @@ function update(dt){
     game.banner = {text: "Now arriving: " + p.name, sub: p.sub + " · +" + bonus + " coins", t:2.6}; Sound.planet(); Saves.save();
   }
   // flying
-  if (holdShip()){ game.vy += (game.holding ? -2350 : GRAV)*dt; game.vy = Math.max(-330, Math.min(MAXFALL, game.vy)); }
+  if (holdShip()){ game.vy += (game.holding ? (game.vy > 0 ? -5200 : -3400) : (game.vy < 0 ? 2600 : 1500))*dt; game.vy = Math.max(-470, Math.min(560, game.vy)); }
   else game.vy = Math.min(MAXFALL, game.vy + GRAV*dt);
   game.py += game.vy*dt;
   if (game.py < 14){ game.py = 14; game.vy = Math.max(0, game.vy); }
@@ -1411,9 +1413,12 @@ function update(dt){
     if (o.band && (o.y - o.r*.6 < o.band[0] || o.y + o.r*.6 > o.band[1])) o.vy = -o.vy;
     if (o.k === "meteor" && Math.random() < dt*40) game.parts.push({x:o.x + 6, y:o.y - 6, vx:40, vy:-30, life:.35, col: Math.random() < .5 ? "#ffd34d" : "#ff6a1a"});
     if (o.k === "comet" && Math.random() < dt*50) game.trail.push({x:o.x + 8, y:o.y + (Math.random() - .5)*6, vx:30, vy:(Math.random() - .5)*10, life:.6, max:.6, r:4, col: Math.random() < .5 ? "#bfefff" : "#ffffff", k:"comet"});
+    if (curCar().body === "flycar" && !o.laserRoll && !(o.warn > 0) && o.x > PX + 30 && o.x - o.r < PX + 190 && Math.abs(o.y - game.py) < o.r + 16){
+      o.laserRoll = true; if (Math.random() < .1){ o.zapped = true; game.laser = {t:0, x:o.x, y:o.y}; burst(o.x, o.y, ["#ff3a3a","#ffd34d","#ffffff", o.col || "#8a7a6a"], 26, 200); Sound.laser(); game.texts.push({txt:"ZAP!", x:o.x, y:o.y - 18, t:0, col:"#ff6a6a"}); continue; } }
     if (hitsShip(o)){ game.cause = o.k + (o.vy === 0 && o.k === "rock" ? "-wall" : ""); return crash(); }
   }
-  game.obs = game.obs.filter(o => o.x > -80 && o.y < GH + 60);
+  game.obs = game.obs.filter(o => !o.zapped && o.x > -80 && o.y < GH + 60);
+  if (game.laser){ game.laser.t += dt; game.laser.x -= dx; if (game.laser.t > .45) game.laser = null; }
   // coins
   const mag = 26;
   game.coins.forEach(k => { k.x -= dx; k.spin += dt*6; const ddx = PX - k.x, ddy = game.py - k.y; if (Math.abs(ddx) < mag + 14 && Math.abs(ddy) < mag){ k.x += ddx*Math.min(1, dt*10); k.y += ddy*Math.min(1, dt*10); } });
@@ -1602,6 +1607,13 @@ function draw(){
   if (!(game.state === "over" && (game.crashed || game.monsterEnd))){
     const hole = game.state === "monster", x = hole ? game.shipX : PX, y = hole ? game.shipY : game.py, s = hole ? game.shipScale : 1;
     ctx.save(); ctx.translate(x, y); ctx.rotate(game.tilt); ctx.scale(SS*s, SS*s); paintShip(ctx, c, {}); ctx.restore();
+    if (game.laser && !hole){ const L = game.laser, up = Math.min(1, L.t/.08)*Math.min(1, (.45 - L.t)/.1);
+      ctx.save(); ctx.translate(x, y); ctx.rotate(game.tilt); ctx.scale(SS, SS);
+      ctx.fillStyle = "#3a3e48"; ctx.fillRect(14, -3 - 5*up, 3, 5*up); ctx.fillStyle = "#c8ccd8"; ctx.fillRect(13, -4 - 5*up, 8, 2.4);   // turret pops up from the hood
+      ctx.restore();
+      if (L.t < .22){ const c2 = Math.cos(game.tilt), s2 = Math.sin(game.tilt), hx = x + (21*c2 - (-4 - 5*up)*s2)*SS, hy = y + (21*s2 + (-4 - 5*up)*c2)*SS, a2 = 1 - L.t/.22;
+        ctx.globalAlpha = a2; ctx.strokeStyle = "#ff3a3a"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(L.x, L.y); ctx.stroke();
+        ctx.strokeStyle = "#ffe0e0"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(L.x, L.y); ctx.stroke(); ctx.globalAlpha = 1; } }
   }
   game.parts.forEach(p => { ctx.globalAlpha = Math.max(0, Math.min(1, p.life*2)); ctx.fillStyle = p.col; ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3); }); ctx.globalAlpha = 1;
   game.texts.forEach(x => { ctx.globalAlpha = Math.max(0, Math.min(1, (1.1 - x.t)*3)); text(x.txt, x.x, x.y - x.t*22, 11, x.col, "center"); }); ctx.globalAlpha = 1;
