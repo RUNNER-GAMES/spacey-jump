@@ -985,6 +985,8 @@ const Sound = (() => {
     // a comet coming: two quick soft beeps
     comet(){ if (!ok() || !lim("comet", .3)) return; [0, .12].forEach(d => tone(1760, .07, {type:"sine", vol:.06, at:d})); },
     // the flying car's hood laser: a sharp zap and a pop
+    // the kickflip: a quick rising whoosh and a click as it lands
+    flip(){ if (!ok()) return; tone(300, .35, {type:"triangle", vol:.08, slide:1200}); noise(.25, {vol:.1, lp:2400}); tone(900, .06, {type:"square", vol:.04, at:.72, cutoff:3000}); },
     laser(){ if (!ok()) return; tone(1800, .16, {type:"sawtooth", vol:.06, slide:400, cutoff:6000}); tone(2600, .1, {type:"square", vol:.03, cutoff:5000}); noise(.3, {vol:.2, at:.05, lp:1400}); tone(90, .3, {type:"sine", vol:.3, at:.05, slide:40}); },
     // crash: a boom and falling debris
     crash(){ if (!ok()) return; noise(.7, {vol:.45, lp:900}); tone(80, .6, {type:"sine", vol:.5, slide:30}); for (let i = 0; i < 6; i++) tone(1500 + Math.random()*2000, .07, {type:"triangle", vol:.04, at:.1 + i*.06}); },
@@ -1222,7 +1224,7 @@ const HOLE_CHANCE = 1/100;                    // about 1 run in 100 meets a blac
 const FLAP = -360, GRAV = 1050, MAXFALL = 500;
 const game = {state:"ready", t:0, speed:0, dist:0, round:1, roundDist:0, runCoins:0, py:180, vy:0, tilt:0, obs:[], coins:[], parts:[], trail:[], texts:[], banner:null, paused:false, scroll:0, nextObs:0, mt:0, fadeT:9};
 function resetRun(){
-  Object.assign(game, {laser:null, t:0, speed:190, dist:0, round:1, roundDist:0, runCoins:0, py:GH*.42, vy:0, tilt:0, obs:[], coins:[], parts:[], trail:[], texts:[], banner:{text:"Earth", sub: TEST.on ? "Test flight" : "Tap to fire your thrusters. Don't fall!", t:2.2},
+  Object.assign(game, {laser:null, flip:null, flipCD:0, t:0, speed:190, dist:0, round:1, roundDist:0, runCoins:0, py:GH*.42, vy:0, tilt:0, obs:[], coins:[], parts:[], trail:[], texts:[], banner:{text:"Earth", sub: TEST.on ? "Test flight" : "Tap to fire your thrusters. Don't fall!", t:2.2},
     paused:false, nextObs:340, trailT:0, monsterEnd:false, mt:0, fadeT:9, crashed:false, lastWall:0});
 }
 function startRun(){
@@ -1246,6 +1248,10 @@ function endRun(){
 }
 function addCoins(n){ game.runCoins += n; if (!TEST.on){ state.coins += n; state.lifetimeCoins += n; renderHUD(); } }
 const holdShip = () => curCar().ex.includes("h");
+// the Starlight GT's kickflip: when something is about to hit it, it flips over it on its own, then needs time to recharge
+const FLIP_CD = 15, FLIP_DUR = .8;
+const hasFlip = () => curCar().body === "flycar";
+function startFlip(){ game.flip = {t:0}; game.flipCD = FLIP_CD; Sound.flip(); game.texts.push({txt:"KICKFLIP!", x:PX, y:game.py - 26, t:0, col:"#7fd7ff"}); }
 function flap(){
   if (game.state !== "running" || game.paused) return;
   if (holdShip()){ game.holding = true; Sound.thrust(); return; }
@@ -1411,6 +1417,8 @@ function update(dt){
   game.tilt += (Math.max(-.45, Math.min(.6, game.vy/900)) - game.tilt)*Math.min(1, dt*10);
   game.trailT += dt*(holdShip() && game.holding ? 40 : 22); while (game.trailT >= 1){ game.trailT--; emitTrail(holdShip() && game.holding); }
   if (game.py + 9*SS >= GROUND){ game.py = GROUND - 9*SS; game.cause = "ground"; return crash(); }
+  if (game.flip){ game.flip.t += dt; if (game.flip.t >= FLIP_DUR) game.flip = null; }
+  else if (game.flipCD > 0) game.flipCD = Math.max(0, game.flipCD - dt);
   // obstacles
   game.nextObs -= dx; if (game.nextObs <= 0) spawnObstacle();
   for (const o of game.obs){
@@ -1425,6 +1433,9 @@ function update(dt){
     if (o.k === "comet" && Math.random() < dt*50) game.trail.push({x:o.x + 8, y:o.y + (Math.random() - .5)*6, vx:30, vy:(Math.random() - .5)*10, life:.6, max:.6, r:4, col: Math.random() < .5 ? "#bfefff" : "#ffffff", k:"comet"});
     if (curCar().body === "flycar" && !o.laserRoll && !(o.warn > 0) && o.x > PX + 30 && o.x - o.r < PX + 190 && Math.abs(o.y - game.py) < o.r + 16){
       o.laserRoll = true; if (Math.random() < .1){ o.zapped = true; game.laser = {t:0, x:o.x, y:o.y}; burst(o.x, o.y, ["#ff3a3a","#ffd34d","#ffffff", o.col || "#8a7a6a"], 26, 200); Sound.laser(); game.texts.push({txt:"ZAP!", x:o.x, y:o.y - 18, t:0, col:"#ff6a6a"}); continue; } }
+    if (hasFlip() && !game.flip && game.flipCD <= 0 && !(o.warn > 0) && o.x + o.r > PX - 20 && o.x - o.r < PX + 34 + game.speed*.12 && Math.abs(o.y - game.py) < o.r + 22){ startFlip(); o.cleared = true; }
+    if (game.flip){ if (hitsShip(o)) o.cleared = true; continue; }   // mid-flip, it sails right over whatever is there
+    if (o.cleared) continue;
     if (hitsShip(o)){ game.cause = o.k + (o.vy === 0 && o.k === "rock" ? "-wall" : ""); return crash(); }
   }
   game.obs = game.obs.filter(o => !o.zapped && o.x > -80 && (o.k === "meteor" ? o.y < GH + 400 && o.y > -400 : o.y < GH + 60));
@@ -1616,7 +1627,9 @@ function draw(){
   const c = curCar();
   if (!(game.state === "over" && (game.crashed || game.monsterEnd))){
     const hole = game.state === "monster", x = hole ? game.shipX : PX, y = hole ? game.shipY : game.py, s = hole ? game.shipScale : 1;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(game.tilt); ctx.scale(SS*s, SS*s); paintShip(ctx, c, {}); ctx.restore();
+    // a kickflip: the car hops up and rolls all the way over along its length
+    const fp = game.flip && !hole ? game.flip.t/FLIP_DUR : 0, hop = fp ? Math.sin(fp*Math.PI)*16 : 0, roll = fp ? Math.cos(fp*Math.PI*2) : 1;
+    ctx.save(); ctx.translate(x, y - hop); ctx.rotate(game.tilt); ctx.scale(SS*s, SS*s*(fp ? (Math.abs(roll) < .12 ? .12*Math.sign(roll || 1) : roll) : 1)); paintShip(ctx, c, {}); ctx.restore();
     if (game.laser && !hole){ const L = game.laser, up = Math.min(1, L.t/.08)*Math.min(1, (.45 - L.t)/.1);
       ctx.save(); ctx.translate(x, y); ctx.rotate(game.tilt); ctx.scale(SS, SS);
       ctx.fillStyle = "#3a3e48"; ctx.fillRect(14, -3 - 5*up, 3, 5*up); ctx.fillStyle = "#c8ccd8"; ctx.fillRect(13, -4 - 5*up, 8, 2.4);   // turret pops up from the hood
@@ -1638,13 +1651,18 @@ const UI_CFG = {
   score: () => Math.floor(game.dist),
   place: () => ({name: planetFor(game.round).name.toUpperCase(), progress: game.roundDist/ROUND_LEN(game.round)}),
   bannerPre: t => t.startsWith("Now arriving") ? "NOW ARRIVING" : "", bannerMain: t => t.replace("Now arriving: ", "").toUpperCase(),
-  extra: (W, H) => { if (game.state === "monster" && game.mt > .3) uiText("BLACK HOLE!", W/2, H*.26, 36, "#c89aff", "center"); },
+  extra: (W, H) => { if (game.state === "monster" && game.mt > .3) uiText("BLACK HOLE!", W/2, H*.26, 36, "#c89aff", "center");
+    // the Starlight GT's kickflip meter: fills back up after each flip
+    if (game.state === "running" && hasFlip()){ const ready = game.flipCD <= 0 && !game.flip, k = game.flip ? 0 : 1 - game.flipCD/FLIP_CD, w = 116;
+      uiPill(12, 94, w, 26, "rgba(10,14,40,.75)", ready ? "rgba(127,215,255,.7)" : "rgba(127,215,255,.3)");
+      uiRR(18, 111, w - 12, 4, 2, "rgba(255,255,255,.15)"); uiRR(18, 111, (w - 12)*k, 4, 2, ready ? "#7fd7ff" : "#4a7aa8");
+      uiText(ready ? "KICKFLIP READY" : "KICKFLIP " + Math.ceil(game.flipCD) + "s", 12 + w/2, 107, 11, ready ? "#ffffff" : "#9ab0d0", "center", null); } },
   hint: () => holdShip() ? (isPhone() ? "Hold to fly · let go to drop" : "Hold the mouse or Space to fly") : (isPhone() ? "Tap to fire your thrusters" : "Click or press Space to fire your thrusters"),
   play: () => go(), pause: () => { game.paused = true; }, resume: () => { game.paused = false; },
   toReady: () => { resetRun(); game.state = "ready"; },
   icon: c => { c.beginPath(); c.moveTo(11, 0); c.lineTo(-3, -6); c.lineTo(-8, -6); c.lineTo(-8, 6); c.lineTo(-3, 6); c.closePath(); c.fill(); c.fillStyle = "#ffd34d"; c.fillRect(-13, -2.5, 5, 5); },
   preview: (c, s, x, y, size, sil) => { c.save(); c.translate(x, y); const k = size/58; c.scale(k, k); paintShip(c, s, {sil}); c.restore(); },
-  perk: s => TRAIL_NAME[s.trail],
+  perk: s => TRAIL_NAME[s.trail] + (s.body === "flycar" ? " · Auto kickflip" : ""),
   crates: () => [
     {kind:"basic", name:"BASIC CRATE", cost:CHESTS.basic.cost, odds:"Mythic 3%  ·  Ultra 0.5%", open: () => openChest("basic")},
     {kind:"epic",  name:"EPIC CRATE",  cost:CHESTS.epic.cost,  odds:"Mythic 7%  ·  Ultra 1.5%", open: () => openChest("epic")}],
