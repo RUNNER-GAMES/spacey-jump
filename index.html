@@ -1295,9 +1295,14 @@ function spawnObstacle(){
     for (let i = 0; i < n; i++) addRock(X + i*90 + Math.random()*30, top + Math.random()*(bot - top), 12 + Math.random()*14 + Math.min(10, r*1.2));
     if (Math.random() < .85) coinWave(X + 40);
   } else if (roll < .78){
-    // a meteor streaking down
-    const y0 = -20, x0 = X - 60 + Math.random()*140;
-    game.obs.push({k:"meteor", x:x0, y:y0, r:9, vx:-(90 + Math.random()*70), vy:120 + Math.random()*70 + r*6, rot:0});
+    // a meteor: it picks a random height to cross your path at and a random angle, steep or shallow, falling or rising,
+    // then starts wherever that line comes from: off the top, off the bottom or off the right edge
+    const vx = -(60 + Math.random()*130), x0 = X + Math.random()*160;
+    let vy = (Math.random() < .72 ? 1 : -1)*(40 + Math.random()*170 + r*5);
+    const ty = top + Math.random()*(bot - top), T = (x0 - PX)/(game.speed - vx);
+    let y0 = ty - vy*T;
+    if (y0 > GROUND + 40 && vy > 0 || y0 < -60 && vy < 0){ vy = -vy; y0 = ty - vy*T; }
+    game.obs.push({k:"meteor", x:x0, y:y0, r:9, vx, vy, rot:0});
     if (Math.random() < .7) coinWave(X + 60);
   } else if (roll < .92 || r < 3){
     // a comet: it races in from the right, and a warning arrow shows where first
@@ -1419,7 +1424,7 @@ function update(dt){
       o.laserRoll = true; if (Math.random() < .1){ o.zapped = true; game.laser = {t:0, x:o.x, y:o.y}; burst(o.x, o.y, ["#ff3a3a","#ffd34d","#ffffff", o.col || "#8a7a6a"], 26, 200); Sound.laser(); game.texts.push({txt:"ZAP!", x:o.x, y:o.y - 18, t:0, col:"#ff6a6a"}); continue; } }
     if (hitsShip(o)){ game.cause = o.k + (o.vy === 0 && o.k === "rock" ? "-wall" : ""); return crash(); }
   }
-  game.obs = game.obs.filter(o => !o.zapped && o.x > -80 && o.y < GH + 60);
+  game.obs = game.obs.filter(o => !o.zapped && o.x > -80 && (o.k === "meteor" ? o.y < GH + 400 && o.y > -400 : o.y < GH + 60));
   if (game.laser){ game.laser.t += dt; game.laser.x -= dx; if (game.laser.t > .45) game.laser = null; }
   // coins
   const mag = 26;
@@ -1524,7 +1529,7 @@ function drawRock(o){
   ctx.restore();
 }
 function drawMeteor(o){
-  const a = Math.atan2(o.vy, o.vx);
+  const a = Math.atan2(o.vy, o.vx - (game.speed || 0));      // point the fiery tail the way it's really moving on screen
   ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(a);
   const g = ctx.createLinearGradient(-60, 0, 0, 0); g.addColorStop(0, "rgba(255,90,30,0)"); g.addColorStop(1, "rgba(255,170,60,.8)");
   ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-60, 0); ctx.lineTo(0, -o.r); ctx.lineTo(0, o.r); ctx.closePath(); ctx.fill();
