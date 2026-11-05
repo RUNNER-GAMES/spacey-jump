@@ -1255,7 +1255,7 @@ function flap(){
 const rockShape = n => Array.from({length:n}, (_, i) => .72 + Math.random()*.32);
 function addRock(x, y, r, o){ game.obs.push(Object.assign({k:"rock", x, y, r, vx:0, vy:(Math.random() - .5)*14, rot:Math.random()*6, spin:(Math.random() - .5)*1.6, shape:rockShape(9), col: ["#8a7a6a","#7a6e64","#6a6a74","#8a6a5a"][Math.floor(Math.random()*4)]}, o || {})); }
 // obstacles come closer together the farther you fly (down to about half the starting gap)
-const dens = () => Math.max(.5, 1 - game.dist*.00012);
+const dens = () => Math.max(.5, 1 - game.dist*.00012) * (1 + Math.max(0, .2 - game.dist*.0005));
 function spawnObstacle(){
   const r = game.round, X = GW + 40, top = 40, bot = GROUND - 30, roll = Math.random();
   const gap = Math.max(118, 182 - r*7);
@@ -1294,15 +1294,16 @@ function spawnObstacle(){
     const n = 1 + (Math.random() < .25 + r*.07 ? 1 : 0) + (r >= 3 && Math.random() < .35 + Math.min(.4, game.dist/8000) ? 1 : 0) + (game.dist > 2500 && Math.random() < Math.min(.5, game.dist/10000) ? 1 : 0);
     for (let i = 0; i < n; i++) addRock(X + i*90 + Math.random()*30, top + Math.random()*(bot - top), 12 + Math.random()*14 + Math.min(10, r*1.2));
     if (Math.random() < .85) coinWave(X + 40);
-  } else if (roll < .78){
-    // a meteor: it picks a random height to cross your path at and a random angle, steep or shallow, falling or rising,
-    // then starts wherever that line comes from: off the top, off the bottom or off the right edge
-    const vx = -(60 + Math.random()*130), x0 = X + Math.random()*160;
-    let vy = (Math.random() < .72 ? 1 : -1)*(40 + Math.random()*170 + r*5);
+  } else if (roll < .62 + Math.min(.1, .04 + game.dist/12000)){
+    // a meteor (fewer early on). It comes from the top, the bottom or straight in from the right, a third of the time each,
+    // and crosses your path at a random height, so no part of the screen is safe from them
+    const side = Math.floor(Math.random()*3), vx = -(60 + Math.random()*120), x0 = X + Math.random()*140;
     const ty = top + Math.random()*(bot - top), T = (x0 - PX)/(game.speed - vx);
-    let y0 = ty - vy*T;
-    if (y0 > GROUND + 40 && vy > 0 || y0 < -60 && vy < 0){ vy = -vy; y0 = ty - vy*T; }
-    game.obs.push({k:"meteor", x:x0, y:y0, r:9, vx, vy, rot:0});
+    let vy;
+    if (side === 0) vy = 90 + Math.random()*150;                 // diving down from above
+    else if (side === 1) vy = -(90 + Math.random()*150);         // climbing up from below
+    else vy = (Math.random() - .5)*70;                          // flying in flat from the right
+    game.obs.push({k:"meteor", x:x0, y: ty - vy*T, r:9, vx, vy, rot:0});
     if (Math.random() < .7) coinWave(X + 60);
   } else if (roll < .92 || r < 3){
     // a comet: it races in from the right, and a warning arrow shows where first
@@ -1393,7 +1394,7 @@ function update(dt){
   if (!moving) return;
   if (game.dist >= game.monsterAt){ startHole(); return; }
   // speed and distance
-  game.speed = Math.min(560, 188 + game.dist*.06 + (game.round - 1)*6);
+  game.speed = Math.min(560, 175 + game.dist*.065 + (game.round - 1)*6);
   const dx = game.speed*dt; game.dist += dx/10; game.roundDist += dx/10;
   if (game.roundDist >= ROUND_LEN(game.round)){
     const bonus = 3*game.round; addCoins(bonus); game.round++; game.roundDist = 0; game.fadeT = 0;
