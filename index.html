@@ -963,6 +963,8 @@ const Sound = (() => {
     thrust(){ if (!ok() || !lim("thrust", .05)) return; const t0 = ac.currentTime, s2 = ac.createBufferSource(); s2.buffer = noiseBuf; const f = ac.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.2;
       f.frequency.setValueAtTime(380, t0); f.frequency.exponentialRampToValueAtTime(900, t0 + .12); const g = ac.createGain(); g.gain.setValueAtTime(.001, t0); g.gain.linearRampToValueAtTime(.16, t0 + .02); g.gain.exponentialRampToValueAtTime(.001, t0 + .2);
       s2.connect(f); f.connect(g); g.connect(sfxBus); s2.start(t0); s2.stop(t0 + .22); },
+    // a button press: a soft pop
+    click(){ if (!ok()) return; tone(520, .05, {type:"sine", vol:.1, slide:780}); },
     // a coin: a little sparkle
     coin(){ if (!ok() || !lim("coin", .03)) return; tone(1320 + Math.random()*80, .06, {type:"triangle", vol:.07}); tone(1980, .08, {type:"sine", vol:.05, at:.04}); },
     // a new planet: a bright rising chime
@@ -1298,12 +1300,12 @@ function spawnObstacle(){
   } else if (roll < M1){
     // a meteor. It dives from above (about half the time), flies in flat from the right, or climbs up from below,
     // and crosses your path at a random height, so no part of the screen is safe from them
-    const sr = Math.random(), side = sr < .45 ? 0 : sr < .75 ? 2 : 1, vx = -(60 + Math.random()*120), x0 = X + Math.random()*140;
+    const sr = Math.random(), side = sr < .45 ? 0 : sr < .75 ? 2 : 1, vx = -(25 + Math.random()*60), x0 = X + Math.random()*140;
     const ty = top + Math.random()*(bot - top), T = (x0 - PX)/(game.speed - vx);
     let vy;
-    if (side === 0) vy = 90 + Math.random()*150;                 // diving down from above
-    else if (side === 1) vy = -(90 + Math.random()*150);         // climbing up from below
-    else vy = (Math.random() - .5)*70;                          // flying in flat from the right
+    if (side === 0) vy = 60 + Math.random()*90;                 // diving down from above
+    else if (side === 1) vy = -(60 + Math.random()*90);         // climbing up from below
+    else vy = (Math.random() - .5)*50;                          // flying in flat from the right
     game.obs.push({k:"meteor", x:x0, y: ty - vy*T, r:9, vx, vy, rot:0});
     if (Math.random() < .7) coinWave(X + 60);
   } else if (roll < C1){
@@ -1595,6 +1597,42 @@ function drawMonkey(o){
   ctx.restore();
 }
 function drawCoin(k){ const w = Math.max(1, Math.abs(Math.cos(k.spin || 0))*7); ctx.fillStyle = "#8a5a10"; ctx.beginPath(); ctx.ellipse(k.x, k.y, w + 1, 8, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#ffc83a"; ctx.beginPath(); ctx.ellipse(k.x, k.y, w, 7, 0, 0, Math.PI*2); ctx.fill(); if (w > 3){ ctx.fillStyle = "#fff3b0"; starP(k.x, k.y, 3.2, 0); } }
+/* ---------- the look: chunky outlined text with a 3D drop, rounded pills and big pressable buttons ---------- */
+const CHUNK = size => `700 ${size}px "Pixelify Sans", "Courier New", monospace`;
+function measureChunky(str, size){ ctx.font = CHUNK(size); return ctx.measureText(str).width; }
+function chunky(str, x, y, size, col, align, deep){
+  ctx.font = CHUNK(size); ctx.textAlign = align || "left"; ctx.lineJoin = "round";
+  const d = Math.max(2, Math.round(size*.1)), dark = deep === undefined ? "#0a0c1e" : deep;
+  if (dark){ ctx.fillStyle = dark; ctx.strokeStyle = dark; ctx.lineWidth = Math.max(3, size*.2); for (let k = d; k >= 1; k--){ ctx.strokeText(str, x, y + k); ctx.fillText(str, x, y + k); } }
+  ctx.strokeStyle = dark || "rgba(0,0,0,0)"; ctx.lineWidth = Math.max(3, size*.2); if (dark) ctx.strokeText(str, x, y);
+  ctx.fillStyle = col; ctx.fillText(str, x, y);
+}
+function pill(x, y, w, h, fill, edge){ ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.roundRect(x, y + 3, w, h, h/2); ctx.fill();
+  ctx.fillStyle = fill; ctx.beginPath(); ctx.roundRect(x, y, w, h, h/2); ctx.fill(); if (edge){ ctx.strokeStyle = edge; ctx.lineWidth = 1.5; ctx.stroke(); } }
+function card(x, y, w, h){ ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.beginPath(); ctx.roundRect(x, y + 6, w, h, 16); ctx.fill();
+  ctx.fillStyle = "#1c2350"; ctx.beginPath(); ctx.roundRect(x, y, w, h, 16); ctx.fill(); ctx.strokeStyle = "#3a4a8a"; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.beginPath(); ctx.roundRect(x + 4, y + 4, w - 8, h*.4, 12); ctx.fill(); }
+function button(x, y, w, h, col, label, act, icon, badge){
+  const down = game.pressed && game.pressed.x === x && game.pressed.y === y, lift = down ? 2 : 6;
+  ctx.fillStyle = shade(col, -.45); ctx.beginPath(); ctx.roundRect(x, y + 6, w, h, 12); ctx.fill();               // the button's thick bottom edge
+  ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(x, y + 6 - lift, w, h, 12); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.beginPath(); ctx.roundRect(x + 4, y + 6 - lift + 3, w - 8, h*.38, 9); ctx.fill();
+  const cy = y + 6 - lift + h/2, size = h >= 44 ? 22 : 14;
+  let lx = x + w/2;
+  if (icon){ const ix = label ? x + (h >= 44 ? 28 : 20) : x + w/2, s2 = h >= 44 ? 1 : .7; ctx.save(); ctx.translate(ix, cy); ctx.scale(s2, s2); uiIcon(icon); ctx.restore(); if (label) lx = x + w/2 + (h >= 44 ? 12 : 9); }
+  if (label) chunky(label, lx, cy + size*.36, size, "#ffffff", "center", shade(col, -.55));
+  if (badge){ circ(x + w - 4, y + 2 - lift + 6, 9, "#ff3a5a"); chunky("!", x + w - 4, y + 7 - lift + 6, 12, "#ffffff", "center", null); }
+  game.ui.push({x, y: y - 2, w, h: h + 8, act, id: x + "," + y});
+}
+function uiIcon(k){ ctx.fillStyle = "#ffffff";
+  if (k === "play"){ ctx.beginPath(); ctx.moveTo(-6, -9); ctx.lineTo(9, 0); ctx.lineTo(-6, 9); ctx.closePath(); ctx.fill(); }
+  else if (k === "pause"){ ctx.fillRect(-7, -8, 5, 16); ctx.fillRect(2, -8, 5, 16); }
+  else if (k === "ship"){ ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-4, -6); ctx.lineTo(-8, -6); ctx.lineTo(-8, 6); ctx.lineTo(-4, 6); ctx.closePath(); ctx.fill(); ctx.fillStyle = "#ffd34d"; ctx.fillRect(-12, -2, 4, 4); }
+  else if (k === "crate"){ ctx.fillRect(-9, -4, 18, 12); ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.fillRect(-9, -1, 18, 2); ctx.fillStyle = "#ffffff"; ctx.fillRect(-10, -8, 20, 5); ctx.fillStyle = "#ffd34d"; ctx.fillRect(-2, -6, 4, 4); }
+}
+function coinPill(rx, y){ const ct = fmt(state.coins), w = measureChunky(ct, 16) + 44; pill(rx - w, y, w, 30, "rgba(10,14,40,.72)", "rgba(255,211,77,.5)"); drawCoin({x: rx - w + 17, y: y + 15, spin:0}); chunky(ct, rx - 12, y + 21, 16, "#ffe08a", "right"); }
+// jump to a section of the page (the hangar or the crates), leaving full screen on a phone
+function openSection(id){ if (isFS()) exitFS(); setTimeout(() => { const el = $(id); if (el) el.closest("section").scrollIntoView({behavior:"smooth", block:"start"}); }, 160); }
 function textFont(size, kind){ return kind === "num" ? `${size}px "Press Start 2P", "Pixelify Sans", monospace` : `700 ${size}px "Pixelify Sans", "Courier New", monospace`; }
 function text(str, x, y, size, col, align, kind){
   ctx.font = textFont(size, kind); ctx.textAlign = align || "left";
@@ -1626,37 +1664,61 @@ function draw(){
   }
   game.parts.forEach(p => { ctx.globalAlpha = Math.max(0, Math.min(1, p.life*2)); ctx.fillStyle = p.col; ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3); }); ctx.globalAlpha = 1;
   game.texts.forEach(x => { ctx.globalAlpha = Math.max(0, Math.min(1, (1.1 - x.t)*3)); text(x.txt, x.x, x.y - x.t*22, 11, x.col, "center"); }); ctx.globalAlpha = 1;
-  // HUD
-  { const L = 10, top = VT + 20, p = planetFor(game.round);
-    ctx.fillStyle = "rgba(4,4,12,.5)"; ctx.fillRect(0, VT, GW, 48);
-    text(p.name.toUpperCase(), L, top, 10, "#ffd27a", "left", "num");
-    ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(L, top + 7, 110, 5); ctx.fillStyle = "#7fd7ff"; ctx.fillRect(L, top + 7, 110*Math.min(1, game.roundDist/ROUND_LEN(game.round)), 5);
-    text("NEXT: " + planetFor(game.round + 1).name.toUpperCase(), L, top + 22, 6, "#a8b0c8", "left", "num");
-    if (GW >= 440) text("BEST " + fmt(Math.max(state.best, Math.floor(game.dist))) + " KM", GW/2, top, 8, "#e0e4f5", "center", "num");
-    text(fmt(Math.floor(game.dist)) + " km", GW - 10, top, 12, "#ffffff", "right", "num");
-    const ct = fmt(state.coins); ctx.font = textFont(10, "num"); const cw = ctx.measureText(ct).width;
-    drawCoin({x: GW - 10 - cw - 11, y: top + 14, spin:0}); text(ct, GW - 10, top + 19, 10, "#ffe08a", "right", "num"); }
-  const oy = Math.round(GH*.34);
-  if (game.banner && game.state === "running"){ const a = Math.min(1, game.banner.t*2); ctx.globalAlpha = a; text(game.banner.text, GW/2, oy, game.banner.text.length > 18 ? 20 : 26, "#ffd27a", "center"); text(game.banner.sub, GW/2, oy + 22, 12, "#f4f0e8", "center"); ctx.globalAlpha = 1; }
-  if (game.state === "monster" && game.mt > .3) text("BLACK HOLE!", GW/2, oy - 30, 28, "#c89aff", "center");
+  game.ui = [];
+  const oy = Math.round(GH*.34), playing = game.state === "running" || game.state === "monster";
+  // the score, top left: a big chunky number like an arcade game
+  if (playing || game.paused){
+    chunky(fmt(Math.floor(game.dist)), 14, VT + 46, 38, "#ffffff", "left");
+    const w0 = measureChunky(fmt(Math.floor(game.dist)), 38);
+    chunky("KM", 20 + w0, VT + 46, 14, "#9ad8ff", "left");
+    const p = planetFor(game.round), pw = Math.max(110, measureChunky(p.name.toUpperCase(), 11) + 24);
+    pill(12, VT + 56, pw, 26, "rgba(10,14,40,.72)", "rgba(127,215,255,.45)");
+    chunky(p.name.toUpperCase(), 12 + pw/2, VT + 72, 11, "#ffd27a", "center");
+    ctx.fillStyle = "rgba(255,255,255,.15)"; ctx.beginPath(); ctx.roundRect(20, VT + 75, pw - 16, 3, 2); ctx.fill();
+    ctx.fillStyle = "#7fd7ff"; ctx.beginPath(); ctx.roundRect(20, VT + 75, (pw - 16)*Math.min(1, game.roundDist/ROUND_LEN(game.round)), 3, 2); ctx.fill();
+    if (game.state === "running" && !game.paused) button(GW - 50, VT + 52, 38, 34, "#3a4478", "", () => { game.paused = true; }, "pause");
+  }
+  coinPill(GW - 12, VT + 14);
+  // a new planet: big chunky banner
+  if (game.banner && game.state === "running"){ const a = Math.min(1, game.banner.t*2); ctx.globalAlpha = a;
+    chunky(game.banner.text.replace("Now arriving: ", "").toUpperCase(), GW/2, oy, game.banner.text.length > 22 ? 24 : 30, "#ffd27a", "center");
+    if (game.banner.text.startsWith("Now arriving")) chunky("NOW ARRIVING", GW/2, oy - 34, 12, "#9ad8ff", "center");
+    chunky(game.banner.sub, GW/2, oy + 26, 12, "#ffffff", "center"); ctx.globalAlpha = 1; }
+  if (game.state === "monster" && game.mt > .3) chunky("BLACK HOLE!", GW/2, oy - 30, 32, "#c89aff", "center");
+  // the title screen
   if (game.state === "ready"){
-    ctx.fillStyle = "rgba(4,6,16,.45)"; ctx.fillRect(0, VT, GW, VB - VT);
-    text("SPACEY JUMP", GW/2, oy, GW < 440 ? 30 : 36, "#7fd7ff", "center");
-    text(holdShip() ? (isPhone() ? "Hold your finger down to fly, let go to drop" : "Hold the mouse or Space to fly, let go to drop") : (isPhone() ? "Tap to fire your thrusters" : "Click or press Space to fire your thrusters"), GW/2, oy + 30, 13, "#f4f0e8", "center");
-    text("Don't fall · dodge the space rocks · reach new planets", GW/2, oy + 50, 11, "#b8bcd8", "center");
-    text(isPhone() ? "Tap to launch" : "Click or press Space to launch", GW/2, oy + 78, 14, "#ffd27a", "center");
+    const g = ctx.createLinearGradient(0, VT, 0, VT + 160); g.addColorStop(0, "rgba(4,6,16,.55)"); g.addColorStop(1, "rgba(4,6,16,0)"); ctx.fillStyle = g; ctx.fillRect(0, VT, GW, 160);
+    const big = GW < 440 ? 46 : 58;
+    chunky("SPACEY", GW/2, oy - 34, big, "#7fd7ff", "center", "#123a6a");
+    chunky("JUMP", GW/2, oy - 34 + big*.95, big*1.12, "#ffd34d", "center", "#7a4a08");
+    if (state.best){ const t = "BEST  " + fmt(state.best) + " KM", w = measureChunky(t, 12) + 30; pill(GW/2 - w/2, oy + big*1.25 - 6, w, 26, "rgba(10,14,40,.72)", "rgba(255,211,77,.5)"); chunky(t, GW/2, oy + big*1.25 + 11, 12, "#ffd27a", "center"); }
+    const by = Math.min(GH - 70, oy + big*1.25 + 40);
+    button(GW/2 - 80, by, 160, 50, "#5ad85a", "PLAY", () => go(), "play");
+    button(GW/2 - 110, by + 62, 104, 36, "#3a8ae8", "SHIPS", () => openSection("collH"), "ship");
+    button(GW/2 + 6, by + 62, 104, 36, "#9a5ae0", "CRATES", () => openSection("chestH"), "crate", state.coins >= CHESTS.basic.cost);
+    chunky(holdShip() ? (isPhone() ? "Hold to fly · let go to drop" : "Hold the mouse or Space to fly") : (isPhone() ? "Tap to fire your thrusters" : "Click or press Space to fire your thrusters"), GW/2, by + 120, 11, "#c8d0e8", "center");
   }
+  // game over: a score card and big buttons
   if (game.state === "over"){
-    ctx.fillStyle = game.monsterEnd ? "rgba(2,0,6,.9)" : "rgba(4,6,16,.6)"; ctx.fillRect(0, VT, GW, VB - VT);
-    if (game.monsterEnd){ text("SWALLOWED BY", GW/2, oy - 14, 18, "#c89aff", "center"); text("A BLACK HOLE!", GW/2, oy + 14, 28, "#ff7ad8", "center"); }
-    else text("CRASHED!", GW/2, oy + 6, 32, "#ff6a4a", "center");
-    text(fmt(Math.floor(game.dist)) + " km", GW/2, oy + 44, 20, "#ffffff", "center", "num");
-    text(`${planetFor(game.round).name.toUpperCase()}  ·  +${game.runCoins} COINS`, GW/2, oy + 66, 9, "#ffe08a", "center", "num");
-    if (game.newBest) text("New best distance!", GW/2, oy + 88, 14, "#7dffe0", "center");
-    text(state.coins >= CHESTS.basic.cost ? (isFS() ? "Tap Exit to open a chest" : "You can open a chest below") : fmt(CHESTS.basic.cost - state.coins) + " coins until a Basic Chest", GW/2, oy + 112, 12, "#f4f0e8", "center");
-    text(isPhone() ? "Tap to fly again" : "Click or press Space to fly again", GW/2, oy + 134, 13, "#c8cce8", "center");
+    ctx.fillStyle = game.monsterEnd ? "rgba(2,0,8,.75)" : "rgba(4,6,16,.5)"; ctx.fillRect(0, VT, GW, VB - VT);
+    const top = Math.max(VT + 96, oy - 70);
+    chunky(game.monsterEnd ? "SWALLOWED!" : "CRASHED!", GW/2, top, GW < 440 ? 34 : 42, game.monsterEnd ? "#c89aff" : "#ff6a4a", "center", game.monsterEnd ? "#3a1a6a" : "#6a1a0a");
+    const cw = Math.min(300, GW - 40), cx = GW/2 - cw/2, cy = top + 16;
+    card(cx, cy, cw, 118);
+    chunky(fmt(Math.floor(game.dist)), GW/2 - 8, cy + 54, 44, "#ffffff", "center");
+    chunky("KM", GW/2 + measureChunky(fmt(Math.floor(game.dist)), 44)/2 - 2, cy + 54, 14, "#9ad8ff", "left");
+    if (game.newBest){ pill(GW/2 - 54, cy + 64, 108, 22, "#ffd34d", "#a87a10"); chunky("NEW BEST!", GW/2, cy + 80, 12, "#5a3a00", "center", null); }
+    else chunky("BEST  " + fmt(state.best) + " KM", GW/2, cy + 80, 11, "#9aa4c8", "center");
+    chunky(planetFor(game.round).name.toUpperCase(), cx + 16, cy + 106, 11, "#ffd27a", "left");
+    const cs = "+" + game.runCoins; chunky(cs, cx + cw - 16, cy + 106, 13, "#ffe08a", "right"); drawCoin({x: cx + cw - 26 - measureChunky(cs, 13), y: cy + 101, spin:0});
+    const by = cy + 134;
+    if (game.t - game.overT > .5){
+      button(GW/2 - 80, by, 160, 50, "#5ad85a", "PLAY", () => go(), "play");
+      button(GW/2 - 110, by + 62, 104, 36, "#3a8ae8", "SHIPS", () => openSection("collH"), "ship");
+      button(GW/2 + 6, by + 62, 104, 36, "#9a5ae0", "CRATES", () => openSection("chestH"), "crate", state.coins >= CHESTS.basic.cost);
+    }
   }
-  if (game.paused){ ctx.fillStyle = "rgba(4,6,16,.5)"; ctx.fillRect(0, VT, GW, VB - VT); text("PAUSED", GW/2, oy, 28, "#f4f0e8", "center"); text("Tap or press P to continue", GW/2, oy + 24, 12, "#b8bcd8", "center"); }
+  if (game.paused){ ctx.fillStyle = "rgba(4,6,16,.55)"; ctx.fillRect(0, VT, GW, VB - VT); chunky("PAUSED", GW/2, oy, 40, "#ffffff", "center"); button(GW/2 - 80, oy + 24, 160, 50, "#5ad85a", "RESUME", () => { game.paused = false; }, "play"); }
   ctx.restore();
 }
 let last = performance.now();
@@ -1687,7 +1749,12 @@ document.addEventListener("keydown", e => {
   if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Enter"){ e.preventDefault(); if (!e.repeat) go(); }
   else if (e.code === "KeyP" && game.state === "running") game.paused = !game.paused;
 });
-cv.addEventListener("pointerdown", e => { e.preventDefault(); Sound.wake(); go(); });
+function toWorld(e){ const r = cv.getBoundingClientRect(), px = (e.clientX - r.left)*cv.width/r.width, py = (e.clientY - r.top)*cv.height/r.height; return [(px - OFX)/SCALE, (py - OFY)/SCALE]; }
+function hitButton(e){ const [x, y] = toWorld(e); return (game.ui || []).find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h); }
+cv.addEventListener("pointerdown", e => { e.preventDefault(); Sound.wake();
+  const b = hitButton(e); if (b){ game.pressed = {x: +b.id.split(",")[0], y: +b.id.split(",")[1]}; Sound.click && Sound.click(); setTimeout(() => { game.pressed = null; b.act(); }, 90); return; }
+  if (game.state === "over") return;                              // after a crash, use the Play button
+  go(); });
 const letGo = () => { game.holding = false; };
 cv.addEventListener("pointerup", letGo); cv.addEventListener("pointercancel", letGo); cv.addEventListener("pointerleave", letGo);
 document.addEventListener("keyup", e => { if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Enter") letGo(); });
